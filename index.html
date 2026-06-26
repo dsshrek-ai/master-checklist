@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Master Checklist</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a73e8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Master Checklist">
+<style>
+/* ── reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue:     #1a73e8;
+  --blue-lt:  #e8f0fe;
+  --blue-dk:  #1557b0;
+  --red:      #d93025;
+  --red-lt:   #fce8e6;
+  --green:    #188038;
+  --green-lt: #e6f4ea;
+  --gray-0:   #ffffff;
+  --gray-1:   #f8f9fa;
+  --gray-2:   #f1f3f4;
+  --gray-3:   #e8eaed;
+  --gray-5:   #9aa0a6;
+  --gray-7:   #5f6368;
+  --gray-9:   #202124;
+  --radius:   8px;
+  --shadow:   0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+  --shadow-md:0 4px 12px rgba(0,0,0,.15);
+}
+html, body { height: 100%; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px; color: var(--gray-9); background: var(--gray-1); line-height: 1.5; }
+
+/* ── layout ── */
+#app { display: flex; flex-direction: column; height: 100%; max-width: 640px;
+  margin: 0 auto; background: var(--gray-0); }
+header { position: sticky; top: 0; z-index: 10; background: var(--gray-0);
+  border-bottom: 1px solid var(--gray-3); padding: 12px 16px; }
+.header-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.header-top h1 { font-size: 20px; font-weight: 600; flex: 1; }
+.list-row { display: flex; align-items: center; gap: 8px; }
+#listPicker { flex: 1; font-size: 15px; padding: 7px 10px;
+  border: 1px solid var(--gray-3); border-radius: var(--radius);
+  background: var(--gray-0); color: var(--gray-9); appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; padding-right: 30px; }
+main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
+#fab { position: fixed; bottom: 24px; right: 50%; transform: translateX(50%);
+  max-width: 608px; width: calc(100% - 32px); padding: 0 16px; pointer-events: none;
+  display: flex; justify-content: flex-end; }
+#addBtn { pointer-events: auto; display: flex; align-items: center; gap: 8px;
+  padding: 14px 20px; background: var(--blue); color: #fff;
+  border: none; border-radius: 28px; font-size: 15px; font-weight: 500;
+  box-shadow: var(--shadow-md); cursor: pointer; transition: background .15s; }
+#addBtn:hover { background: var(--blue-dk); }
+#addBtn svg { width: 20px; height: 20px; }
+
+/* ── buttons ── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+  border-radius: var(--radius); border: 1px solid var(--gray-3); background: var(--gray-0);
+  color: var(--gray-7); font-size: 14px; cursor: pointer; transition: background .1s; }
+.btn:hover { background: var(--gray-2); }
+.btn-icon { padding: 6px; border-radius: 50%; border: none; background: none;
+  color: var(--gray-5); cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: background .1s; }
+.btn-icon:hover { background: var(--gray-2); color: var(--gray-9); }
+.btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn-primary:hover { background: var(--blue-dk); }
+.btn-danger { color: var(--red); border-color: var(--red-lt); }
+.btn-danger:hover { background: var(--red-lt); }
+
+/* ── items ── */
+.item { background: var(--gray-0); border: 1px solid var(--gray-3);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+  display: flex; align-items: flex-start; gap: 12px; transition: opacity .2s; }
+.item.complete { opacity: .5; }
+.item-check { margin-top: 2px; flex-shrink: 0; }
+.item-check input[type=checkbox] { width: 18px; height: 18px; cursor: pointer;
+  accent-color: var(--blue); }
+.item-body { flex: 1; min-width: 0; }
+.item-what { font-size: 15px; font-weight: 500; }
+.item.complete .item-what { text-decoration: line-through; color: var(--gray-5); }
+.item-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.meta { display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--gray-7); }
+.meta svg { width: 13px; height: 13px; flex-shrink: 0; }
+.meta.map-link { color: var(--blue); cursor: pointer; text-decoration: underline;
+  text-decoration-color: transparent; }
+.meta.map-link:hover { text-decoration-color: var(--blue); }
+.item-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+/* ── empty state ── */
+.empty { text-align: center; padding: 60px 20px; color: var(--gray-5); }
+.empty svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: .4; }
+.empty p { font-size: 15px; }
+
+/* ── loading / error ── */
+.status-msg { text-align: center; padding: 32px; color: var(--gray-5); font-size: 14px; }
+.error-msg  { background: var(--red-lt); color: var(--red); border-radius: var(--radius);
+  padding: 10px 14px; font-size: 14px; margin-bottom: 12px; }
+
+/* ── modal ── */
+.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  z-index: 100; align-items: flex-end; justify-content: center; }
+.modal-backdrop.open { display: flex; }
+.modal { background: var(--gray-0); border-radius: 16px 16px 0 0; width: 100%;
+  max-width: 640px; padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  max-height: 92vh; overflow-y: auto; }
+.modal-header { display: flex; align-items: center; margin-bottom: 20px; }
+.modal-header h2 { flex: 1; font-size: 18px; font-weight: 600; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+/* ── form fields ── */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-7);
+  margin-bottom: 5px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--gray-3);
+  border-radius: var(--radius); font-size: 15px; color: var(--gray-9);
+  background: var(--gray-0); outline: none; transition: border-color .15s; }
+.field input:focus, .field select:focus { border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── list manager ── */
+.list-item-row { display: flex; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--gray-3); }
+.list-item-row:last-child { border-bottom: none; }
+.list-item-row span { flex: 1; font-size: 15px; }
+.list-add-row { display: flex; gap: 8px; margin-top: 14px; }
+.list-add-row input { flex: 1; padding: 9px 12px; border: 1px solid var(--gray-3);
+  border-radius: var(--radius); font-size: 15px; outline: none; }
+.list-add-row input:focus { border-color: var(--blue); }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="header-top">
+      <h1>Master Checklist</h1>
+    </div>
+    <div class="list-row">
+      <select id="listPicker" aria-label="Select list"></select>
+      <button class="btn" id="manageListsBtn" title="Manage lists">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Lists
+      </button>
+    </div>
+  </header>
+
+  <main id="itemList"></main>
+</div>
+
+<div id="fab">
+  <button id="addBtn" aria-label="Add item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add item
+  </button>
+</div>
+
+<!-- Item modal -->
+<div class="modal-backdrop" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="itemModalTitle">Add item</h2>
+      <button class="btn-icon" id="itemModalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="itemError" class="error-msg" style="display:none"></div>
+    <form id="itemForm" novalidate>
+      <div class="field">
+        <label for="f-what">What <span style="color:var(--red)">*</span></label>
+        <input id="f-what" type="text" placeholder="Task description" required>
+      </div>
+      <div class="field">
+        <label for="f-where">Where</label>
+        <input id="f-where" type="text" placeholder="Address or location">
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-date">Date</label>
+          <input id="f-date" type="date">
+        </div>
+        <div class="field">
+          <label for="f-time">Time</label>
+          <input id="f-time" type="time">
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-who">Who</label>
+        <input id="f-who" type="text" placeholder="Person responsible">
+      </div>
+    </form>
+    <div class="modal-footer">
+      <button class="btn" id="itemModalCancel">Cancel</button>
+      <button class="btn btn-primary" id="itemModalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- List manager modal -->
+<div class="modal-backdrop" id="listModal" role="dialog" aria-modal="true" aria-labelledby="listModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="listModalTitle">Manage lists</h2>
+      <button class="btn-icon" id="listModalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="listError" class="error-msg" style="display:none"></div>
+    <div id="listItems"></div>
+    <div class="list-add-row">
+      <input id="newListName" type="text" placeholder="New list name">
+      <button class="btn btn-primary" id="addListBtn">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL'; // ← paste your deployed web app URL here
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let allItems     = [];
+let lists        = [];
+let currentList  = null;
+let editingId    = null;
+
+// ── API ───────────────────────────────────────────────────────────────────────
+async function api(params) {
+  const url = SCRIPT_URL + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Network error ' + res.status);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function loadItems() {
+  showLoading();
+  try {
+    const data = await api({ action: 'list' });
+    allItems = data.items.map(normalizeItem);
+    rebuildLists();
+    render();
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+async function saveItem(itemData) {
+  if (editingId) {
+    await api({ action: 'update', id: editingId, data: JSON.stringify(itemData) });
+    const idx = allItems.findIndex(i => String(i.ID) === String(editingId));
+    if (idx > -1) allItems[idx] = { ...allItems[idx], ...itemData };
+  } else {
+    itemData.listName = currentList || lists[0] || 'My List';
+    const res = await api({ action: 'add', data: JSON.stringify(itemData) });
+    allItems.push(normalizeItem({ ID: res.id, 'List Name': itemData.listName,
+      What: itemData.what, Where: itemData.where, When: itemData.when,
+      Who: itemData.who, Complete: false }));
+  }
+  rebuildLists();
+  render();
+}
+
+async function toggleComplete(id, current) {
+  const item = allItems.find(i => String(i.ID) === String(id));
+  if (!item) return;
+  item.Complete = !current;
+  render();
+  try {
+    await api({ action: 'update', id, data: JSON.stringify({ complete: !current }) });
+  } catch (e) {
+    item.Complete = current;
+    render();
+    alert('Failed to save: ' + e.message);
+  }
+}
+
+async function removeItem(id) {
+  if (!confirm('Delete this item?')) return;
+  allItems = allItems.filter(i => String(i.ID) !== String(id));
+  render();
+  try {
+    await api({ action: 'delete', id });
+  } catch (e) {
+    await loadItems();
+    alert('Failed to delete: ' + e.message);
+  }
+}
+
+async function renameList(oldName, newName) {
+  await api({ action: 'renameList', oldName, newName });
+  allItems.forEach(i => { if (i['List Name'] === oldName) i['List Name'] = newName; });
+  if (currentList === oldName) currentList = newName;
+  rebuildLists();
+}
+
+async function removeList(name) {
+  const count = allItems.filter(i => i['List Name'] === name).length;
+  const msg = count > 0
+    ? `Delete "${name}" and all ${count} item${count !== 1 ? 's' : ''} in it?`
+    : `Delete the empty list "${name}"?`;
+  if (!confirm(msg)) return;
+  await api({ action: 'deleteList', listName: name });
+  allItems = allItems.filter(i => i['List Name'] !== name);
+  if (currentList === name) currentList = lists.find(l => l !== name) || null;
+  rebuildLists();
+  renderListModal();
+  render();
+}
+
+// ── NORMALIZE ─────────────────────────────────────────────────────────────────
+function normalizeItem(raw) {
+  return {
+    ID:          raw['ID']        ?? raw.id ?? '',
+    'List Name': raw['List Name'] ?? raw.listName ?? '',
+    What:        raw['What']      ?? raw.what ?? '',
+    Where:       raw['Where']     ?? raw.where ?? '',
+    When:        raw['When']      ?? raw.when ?? '',
+    Who:         raw['Who']       ?? raw.who ?? '',
+    Complete:    raw['Complete'] === true || raw['Complete'] === 'TRUE' || raw['Complete'] === true
+  };
+}
+
+function parseWhen(when) {
+  if (!when) return { date: '', time: '' };
+  const parts = String(when).split('|');
+  return { date: parts[0] || '', time: parts[1] || '' };
+}
+
+function formatWhenDisplay(when) {
+  const { date, time } = parseWhen(when);
+  const parts = [];
+  if (date) {
+    const d = new Date(date + 'T00:00:00');
+    parts.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year:
+      d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }));
+  }
+  if (time) {
+    const [h, m] = time.split(':').map(Number);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    parts.push(`${((h % 12) || 12)}:${String(m).padStart(2,'0')} ${suffix}`);
+  }
+  return parts.join(' · ');
+}
+
+function looksLikeAddress(where) {
+  if (!where) return false;
+  return /\d/.test(where) || /\b(st|ave|blvd|rd|dr|ln|way|ct|pl|hwy)\b/i.test(where);
+}
+
+// ── LISTS ─────────────────────────────────────────────────────────────────────
+function rebuildLists() {
+  lists = [...new Set(allItems.map(i => i['List Name']).filter(Boolean))].sort();
+  if (!currentList && lists.length) currentList = lists[0];
+  if (currentList && !lists.includes(currentList)) currentList = lists[0] || null;
+  renderListPicker();
+}
+
+function renderListPicker() {
+  const sel = document.getElementById('listPicker');
+  sel.innerHTML = lists.length
+    ? lists.map(l => `<option value="${esc(l)}" ${l === currentList ? 'selected' : ''}>${esc(l)}</option>`).join('')
+    : '<option value="">No lists yet</option>';
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  const container = document.getElementById('itemList');
+  const filtered  = allItems.filter(i => i['List Name'] === currentList);
+
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+      <p>${currentList ? `No items in "${esc(currentList)}" yet.` : 'Create a list to get started.'}</p>
+    </div>`;
+    return;
+  }
+
+  const active   = filtered.filter(i => !i.Complete);
+  const complete = filtered.filter(i => i.Complete);
+  let html = '';
+
+  html += active.map(itemHTML).join('');
+  if (complete.length) {
+    html += `<p style="font-size:13px;color:var(--gray-5);margin:16px 0 8px;font-weight:500;">
+      Completed (${complete.length})</p>`;
+    html += complete.map(itemHTML).join('');
+  }
+
+  container.innerHTML = html;
+  container.querySelectorAll('.item-check input').forEach(cb => {
+    cb.addEventListener('change', () => toggleComplete(cb.dataset.id, cb.dataset.complete === 'true'));
+  });
+  container.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openItemModal(btn.dataset.id));
+  });
+  container.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => removeItem(btn.dataset.id));
+  });
+}
+
+function itemHTML(item) {
+  const id      = String(item.ID);
+  const done    = item.Complete;
+  const when    = formatWhenDisplay(item.When);
+  const isAddr  = looksLikeAddress(item.Where);
+  const mapsUrl = item.Where
+    ? 'https://maps.google.com/maps?q=' + encodeURIComponent(item.Where)
+    : '';
+
+  let metaHtml = '';
+  if (item.Where) {
+    if (isAddr) {
+      metaHtml += `<a class="meta map-link" href="${mapsUrl}" target="_blank" rel="noopener" title="Open in Maps">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${esc(item.Where)}</a>`;
+    } else {
+      metaHtml += `<span class="meta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${esc(item.Where)}</span>`;
+    }
+  }
+  if (when) {
+    metaHtml += `<span class="meta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      ${esc(when)}</span>`;
+  }
+  if (item.Who) {
+    metaHtml += `<span class="meta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      ${esc(item.Who)}</span>`;
+  }
+
+  return `<div class="item${done ? ' complete' : ''}">
+    <div class="item-check">
+      <input type="checkbox" ${done ? 'checked' : ''} data-id="${esc(id)}" data-complete="${done}" aria-label="Mark complete">
+    </div>
+    <div class="item-body">
+      <div class="item-what">${esc(item.What)}</div>
+      ${metaHtml ? `<div class="item-meta">${metaHtml}</div>` : ''}
+    </div>
+    <div class="item-actions">
+      <button class="btn-icon edit-btn" data-id="${esc(id)}" aria-label="Edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="btn-icon del-btn" data-id="${esc(id)}" aria-label="Delete" style="color:var(--gray-5)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+function showLoading() {
+  document.getElementById('itemList').innerHTML = '<p class="status-msg">Loading…</p>';
+}
+
+function showError(msg) {
+  document.getElementById('itemList').innerHTML =
+    `<p class="status-msg" style="color:var(--red)">Error: ${esc(msg)}</p>`;
+}
+
+// ── ITEM MODAL ────────────────────────────────────────────────────────────────
+function openItemModal(id = null) {
+  editingId = id;
+  const modal = document.getElementById('itemModal');
+  document.getElementById('itemModalTitle').textContent = id ? 'Edit item' : 'Add item';
+  document.getElementById('itemError').style.display = 'none';
+
+  if (id) {
+    const item = allItems.find(i => String(i.ID) === String(id));
+    if (item) {
+      document.getElementById('f-what').value  = item.What  || '';
+      document.getElementById('f-where').value = item.Where || '';
+      document.getElementById('f-who').value   = item.Who   || '';
+      const { date, time } = parseWhen(item.When);
+      document.getElementById('f-date').value  = date;
+      document.getElementById('f-time').value  = time;
+    }
+  } else {
+    document.getElementById('itemForm').reset();
+  }
+
+  modal.classList.add('open');
+  document.getElementById('f-what').focus();
+}
+
+function closeItemModal() {
+  document.getElementById('itemModal').classList.remove('open');
+  editingId = null;
+}
+
+async function submitItemForm() {
+  const what = document.getElementById('f-what').value.trim();
+  if (!what) {
+    const err = document.getElementById('itemError');
+    err.textContent = '"What" is required.';
+    err.style.display = 'block';
+    document.getElementById('f-what').focus();
+    return;
+  }
+
+  const date  = document.getElementById('f-date').value;
+  const time  = document.getElementById('f-time').value;
+  const when  = (date || time) ? `${date}|${time}` : '';
+
+  const saveBtn = document.getElementById('itemModalSave');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  try {
+    await saveItem({
+      what,
+      where: document.getElementById('f-where').value.trim(),
+      when,
+      who:   document.getElementById('f-who').value.trim(),
+    });
+    closeItemModal();
+  } catch (e) {
+    const err = document.getElementById('itemError');
+    err.textContent = 'Save failed: ' + e.message;
+    err.style.display = 'block';
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  }
+}
+
+// ── LIST MODAL ────────────────────────────────────────────────────────────────
+function openListModal() {
+  document.getElementById('listError').style.display = 'none';
+  document.getElementById('newListName').value = '';
+  renderListModal();
+  document.getElementById('listModal').classList.add('open');
+}
+
+function closeListModal() {
+  document.getElementById('listModal').classList.remove('open');
+}
+
+function renderListModal() {
+  const container = document.getElementById('listItems');
+  if (!lists.length) {
+    container.innerHTML = '<p style="color:var(--gray-5);font-size:14px;">No lists yet.</p>';
+    return;
+  }
+  container.innerHTML = lists.map(name => `
+    <div class="list-item-row">
+      <span>${esc(name)}</span>
+      <button class="btn-icon rename-list-btn" data-name="${esc(name)}" aria-label="Rename ${esc(name)}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="btn-icon" style="color:var(--gray-5)" data-name="${esc(name)}" aria-label="Delete ${esc(name)}" onclick="handleDeleteList(this.dataset.name)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>`).join('');
+
+  container.querySelectorAll('.rename-list-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleRenameList(btn.dataset.name));
+  });
+}
+
+async function handleAddList() {
+  const input = document.getElementById('newListName');
+  const name  = input.value.trim();
+  if (!name) return;
+  if (lists.includes(name)) {
+    showListError('A list with that name already exists.');
+    return;
+  }
+  lists.push(name);
+  lists.sort();
+  currentList = name;
+  renderListPicker();
+  renderListModal();
+  render();
+  input.value = '';
+
+  try {
+    await api({ action: 'add', data: JSON.stringify({
+      listName: name, what: '__placeholder__', where: '', when: '', who: '', complete: false
+    })});
+    await api({ action: 'delete', id: (await api({ action: 'list' })).items.find(
+      i => i['List Name'] === name && i['What'] === '__placeholder__')?.ID });
+  } catch (_) {}
+  await loadItems();
+}
+
+async function handleRenameList(oldName) {
+  const newName = prompt(`Rename "${oldName}" to:`, oldName);
+  if (!newName || newName === oldName) return;
+  if (lists.includes(newName)) {
+    showListError('That name already exists.');
+    return;
+  }
+  try {
+    await renameList(oldName, newName);
+    renderListModal();
+    render();
+  } catch (e) {
+    showListError('Rename failed: ' + e.message);
+  }
+}
+
+async function handleDeleteList(name) {
+  try {
+    await removeList(name);
+  } catch (e) {
+    showListError('Delete failed: ' + e.message);
+  }
+}
+
+function showListError(msg) {
+  const err = document.getElementById('listError');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────────────────
+document.getElementById('listPicker').addEventListener('change', e => {
+  currentList = e.target.value;
+  render();
+});
+document.getElementById('manageListsBtn').addEventListener('click', openListModal);
+document.getElementById('addBtn').addEventListener('click', () => openItemModal());
+
+document.getElementById('itemModalClose').addEventListener('click', closeItemModal);
+document.getElementById('itemModalCancel').addEventListener('click', closeItemModal);
+document.getElementById('itemModalSave').addEventListener('click', submitItemForm);
+document.getElementById('itemForm').addEventListener('submit', e => { e.preventDefault(); submitItemForm(); });
+document.getElementById('itemModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeItemModal(); });
+
+document.getElementById('listModalClose').addEventListener('click', closeListModal);
+document.getElementById('listModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeListModal(); });
+document.getElementById('addListBtn').addEventListener('click', handleAddList);
+document.getElementById('newListName').addEventListener('keydown', e => { if (e.key === 'Enter') handleAddList(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeItemModal(); closeListModal(); }
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+if (SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') {
+  document.getElementById('itemList').innerHTML =
+    `<div class="empty"><p style="color:var(--red)">
+      Open <code>index.html</code> and set <code>SCRIPT_URL</code> to your deployed Apps Script URL.<br><br>
+      See <code>SETUP.md</code> for instructions.
+    </p></div>`;
+} else {
+  loadItems();
+}
+</script>
+</body>
+</html>
