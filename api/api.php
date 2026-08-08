@@ -528,6 +528,26 @@ switch ($action) {
     respond(['success' => true, 'cleared' => $count]);
   }
 
+  case 'deleteChecked': {
+    $user = requireUser();
+    $body = jsonBody();
+    $listId = (int)($body['listId'] ?? 0);
+    if ($listId <= 0) {
+      fail('listId is required');
+    }
+    requireListOwner($user, $listId);
+
+    // Permanent, unlike clearChecked — also takes any cleared-but-checked
+    // items with it, and cascades to children/grandchildren via the FK.
+    $stmt = db()->prepare('DELETE FROM checklist_items WHERE list_id = ? AND complete = 1');
+    $stmt->bind_param('i', $listId);
+    $stmt->execute();
+    $count = $stmt->affected_rows;
+    $stmt->close();
+
+    respond(['success' => true, 'deleted' => $count]);
+  }
+
   case 'restoreCleared': {
     $user = requireUser();
     $body = jsonBody();

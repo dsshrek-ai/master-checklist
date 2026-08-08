@@ -62,5 +62,7 @@ const API_URL = 'https://seniorfamily.org/checklist-api/api.php';
 - Deleting an item deletes its children/grandchildren with it (cascades in
   the database).
 - "Clear checked" hides checked items without deleting them; "Restore"
-  brings back everything currently hidden for that list. Nothing is
-  permanently lost until you explicitly delete an item.
+  brings back everything currently hidden for that list — use this pair for
+  repeating lists you want to reuse. "Delete checked" is the permanent
+  option: it removes checked items (and any sub-items under them) for good,
+  for one-off lists you don't need history on.
