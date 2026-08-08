@@ -1,4 +1,4 @@
-const CACHE = 'master-checklist-v1';
+const CACHE = 'master-checklist-v2';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -14,7 +14,7 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.url.includes('script.google.com')) return;
+  if (e.request.url.includes('seniorfamily.org')) return;
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
   );

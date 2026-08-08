@@ -35,6 +35,12 @@ html, body { height: 100%; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 16px; color: var(--gray-9); background: var(--gray-1); line-height: 1.5; }
 
+/* ── login ── */
+.login-screen { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.login-card { width: 100%; max-width: 360px; background: var(--gray-0); border: 1px solid var(--gray-3);
+  border-radius: 12px; padding: 24px; box-shadow: var(--shadow); }
+.login-card h1 { font-size: 20px; font-weight: 600; margin-bottom: 18px; text-align: center; }
+
 /* ── layout ── */
 #app { display: flex; flex-direction: column; height: 100%; max-width: 640px;
   margin: 0 auto; background: var(--gray-0); }
@@ -42,12 +48,15 @@ header { position: sticky; top: 0; z-index: 10; background: var(--gray-0);
   border-bottom: 1px solid var(--gray-3); padding: 12px 16px; }
 .header-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .header-top h1 { font-size: 20px; font-weight: 600; flex: 1; }
+.icon-link { font-size: 13px; color: var(--gray-7); background: none; border: none;
+  cursor: pointer; text-decoration: underline; white-space: nowrap; }
 .list-row { display: flex; align-items: center; gap: 8px; }
 #listPicker { flex: 1; font-size: 15px; padding: 7px 10px;
   border: 1px solid var(--gray-3); border-radius: var(--radius);
   background: var(--gray-0); color: var(--gray-9); appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 8px center; padding-right: 30px; }
+.toolbar-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 #fab { position: fixed; bottom: 24px; right: 50%; transform: translateX(50%);
   max-width: 608px; width: calc(100% - 32px); padding: 0 16px; pointer-events: none;
@@ -64,19 +73,24 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
   border-radius: var(--radius); border: 1px solid var(--gray-3); background: var(--gray-0);
   color: var(--gray-7); font-size: 14px; cursor: pointer; transition: background .1s; }
 .btn:hover { background: var(--gray-2); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-sm { padding: 6px 10px; font-size: 13px; }
 .btn-icon { padding: 6px; border-radius: 50%; border: none; background: none;
   color: var(--gray-5); cursor: pointer; display: flex; align-items: center;
   justify-content: center; transition: background .1s; }
 .btn-icon:hover { background: var(--gray-2); color: var(--gray-9); }
+.btn-icon:disabled { opacity: .3; cursor: default; }
+.btn-icon:disabled:hover { background: none; }
 .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
 .btn-primary:hover { background: var(--blue-dk); }
 .btn-danger { color: var(--red); border-color: var(--red-lt); }
 .btn-danger:hover { background: var(--red-lt); }
 
 /* ── items ── */
+.item-children { margin-left: 22px; }
 .item { background: var(--gray-0); border: 1px solid var(--gray-3);
   border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
-  display: flex; align-items: flex-start; gap: 12px; transition: opacity .2s; }
+  display: flex; align-items: flex-start; gap: 10px; transition: opacity .2s; }
 .item.complete { opacity: .5; }
 .item-check { margin-top: 2px; flex-shrink: 0; }
 .item-check input[type=checkbox] { width: 18px; height: 18px; cursor: pointer;
@@ -91,7 +105,9 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 .meta.map-link { color: var(--blue); cursor: pointer; text-decoration: underline;
   text-decoration-color: transparent; }
 .meta.map-link:hover { text-decoration-color: var(--blue); }
-.item-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.item-actions { display: flex; gap: 0px; flex-shrink: 0; }
+.item-actions .btn-icon { padding: 5px; }
+.item-actions .btn-icon svg { width: 15px; height: 15px; }
 
 /* ── empty state ── */
 .empty { text-align: center; padding: 60px 20px; color: var(--gray-5); }
@@ -139,10 +155,27 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 </head>
 <body>
 
-<div id="app">
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h1>Master Checklist</h1>
+    <div class="field">
+      <label for="loginUsername">Username</label>
+      <input type="text" id="loginUsername" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="loginPw">Password</label>
+      <input type="password" id="loginPw" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" id="loginBtn">Log in</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
   <header>
     <div class="header-top">
       <h1>Master Checklist</h1>
+      <button class="icon-link" id="logoutBtn">Log out</button>
     </div>
     <div class="list-row">
       <select id="listPicker" aria-label="Select list"></select>
@@ -151,12 +184,16 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
         Lists
       </button>
     </div>
+    <div class="toolbar-row">
+      <button class="btn btn-sm" id="clearCheckedBtn" style="display:none">Clear checked</button>
+      <button class="btn btn-sm" id="restoreBtn" style="display:none">Restore cleared</button>
+    </div>
   </header>
 
   <main id="itemList"></main>
 </div>
 
-<div id="fab">
+<div id="fab" style="display:none">
   <button id="addBtn" aria-label="Add item">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Add item
@@ -224,130 +261,294 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby2w5UtqZZ8esDzptYg3mAF_9j_bggnNjFRtq7abDcJs3DuEVx37R4OkOe7zd1RvHA4-Q/exec'; // ← paste your deployed web app URL here
+const API_URL = 'https://seniorfamily.org/checklist-api/api.php'; // ← confirm this matches where you upload the api/ folder
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let allItems     = [];
-let lists        = [];
-let currentList  = null;
+const AUTH_KEY = 'checklistAuth';
+let auth         = null;   // { token, displayName }
+let allItems     = [];     // items in the currently selected list (cleared ones excluded)
+let clearedCount = 0;      // cleared items in the currently selected list
+let lists        = [];     // [{ id, name }]
+let currentListId = null;
 let editingId    = null;
 
+const loginScreen = document.getElementById('loginScreen');
+const loginUsername = document.getElementById('loginUsername');
+const loginPw = document.getElementById('loginPw');
+const loginBtn = document.getElementById('loginBtn');
+const loginMsg = document.getElementById('loginMsg');
+const appEl = document.getElementById('app');
+const fabEl = document.getElementById('fab');
+
+// ── AUTH STORAGE ──────────────────────────────────────────────────────────────
+function loadAuth() { try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; } }
+function saveAuth(a) { localStorage.setItem(AUTH_KEY, JSON.stringify(a)); }
+function clearAuthStorage() { localStorage.removeItem(AUTH_KEY); }
+
+function authHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth && auth.token) headers['Authorization'] = `Bearer ${auth.token}`;
+  return headers;
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
-async function api(params) {
-  const url = SCRIPT_URL + '?' + new URLSearchParams(params);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Network error ' + res.status);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+async function api(action, { method = 'GET', body = null, query = {} } = {}) {
+  const qs = new URLSearchParams({ action, ...query });
+  const res = await fetch(`${API_URL}?${qs}`, {
+    method,
+    headers: authHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function isSessionError(e) {
+  return /session|authoriz/i.test(e.message);
+}
+
+function handleApiError(e, fallbackPrefix = 'Something went wrong') {
+  if (isSessionError(e)) {
+    showLogin('Your saved login stopped working. Please log in again.');
+  } else {
+    alert(`${fallbackPrefix}: ${e.message}`);
+  }
+}
+
+// ── SCREENS ───────────────────────────────────────────────────────────────────
+function showLogin(message) {
+  clearAuthStorage();
+  auth = null;
+  appEl.style.display = 'none';
+  fabEl.style.display = 'none';
+  loginScreen.style.display = 'flex';
+  loginMsg.innerHTML = message ? `<div class="error-msg">${esc(message)}</div>` : '';
+}
+
+function showApp() {
+  loginScreen.style.display = 'none';
+  appEl.style.display = 'flex';
+  fabEl.style.display = 'flex';
+}
+
+async function attemptLogin() {
+  const username = loginUsername.value.trim();
+  const password = loginPw.value;
+  if (!username || !password) {
+    loginMsg.innerHTML = '<div class="error-msg">Enter your username and password.</div>';
+    return;
+  }
+  loginBtn.disabled = true;
+  loginMsg.innerHTML = '';
+  try {
+    const data = await api('login', { method: 'POST', body: { username, password } });
+    auth = { token: data.token, displayName: data.displayName || username };
+    saveAuth(auth);
+    loginPw.value = '';
+    showApp();
+    await bootstrapApp();
+  } catch (e) {
+    loginMsg.innerHTML = `<div class="error-msg">${esc(e.message)}</div>`;
+  } finally {
+    loginBtn.disabled = false;
+  }
+}
+
+async function logout() {
+  try { await api('logout', { method: 'POST', body: { token: auth.token } }); } catch (_) {}
+  showLogin();
+}
+
+// ── BOOTSTRAP / LISTS ─────────────────────────────────────────────────────────
+async function bootstrapApp() {
+  try {
+    const data = await api('listLists');
+    lists = data.lists;
+    if (!currentListId || !lists.find(l => l.id === currentListId)) {
+      currentListId = lists[0]?.id ?? null;
+    }
+    renderListPicker();
+    await loadItems();
+  } catch (e) {
+    handleApiError(e, "Couldn't load your lists");
+  }
 }
 
 async function loadItems() {
+  if (!currentListId) {
+    allItems = [];
+    clearedCount = 0;
+    render();
+    return;
+  }
   showLoading();
   try {
-    const data = await api({ action: 'list' });
-    allItems = data.items.map(normalizeItem);
-    rebuildLists();
+    const data = await api('listItems', { query: { listId: currentListId } });
+    allItems = data.items;
+    clearedCount = data.clearedCount;
     render();
   } catch (e) {
-    showError(e.message);
+    if (isSessionError(e)) {
+      handleApiError(e);
+    } else {
+      showError(e.message);
+    }
   }
 }
 
+function renderListPicker() {
+  const sel = document.getElementById('listPicker');
+  sel.innerHTML = lists.length
+    ? lists.map(l => `<option value="${l.id}" ${l.id === currentListId ? 'selected' : ''}>${esc(l.name)}</option>`).join('')
+    : '<option value="">No lists yet</option>';
+}
+
+// ── ITEM MUTATIONS ────────────────────────────────────────────────────────────
 async function saveItem(itemData) {
   if (editingId) {
-    await api({ action: 'update', id: editingId, data: JSON.stringify(itemData) });
-    const idx = allItems.findIndex(i => String(i.ID) === String(editingId));
-    if (idx > -1) allItems[idx] = { ...allItems[idx], ...itemData };
+    await api('updateItem', { method: 'POST', body: { id: editingId, ...itemData } });
   } else {
-    itemData.listName = currentList || lists[0] || 'My List';
-    const res = await api({ action: 'add', data: JSON.stringify(itemData) });
-    allItems.push(normalizeItem({ ID: res.id, 'List Name': itemData.listName,
-      What: itemData.what, Where: itemData.where, When: itemData.when,
-      Who: itemData.who, Complete: false }));
+    await api('addItem', { method: 'POST', body: { listId: currentListId, ...itemData } });
   }
-  rebuildLists();
-  render();
+  await loadItems();
 }
 
 async function toggleComplete(id, current) {
-  const item = allItems.find(i => String(i.ID) === String(id));
+  const item = allItems.find(i => i.id === Number(id));
   if (!item) return;
-  item.Complete = !current;
+  item.complete = !current;
   render();
   try {
-    await api({ action: 'update', id, data: JSON.stringify({ complete: !current }) });
+    await api('updateItem', { method: 'POST', body: { id, complete: !current } });
   } catch (e) {
-    item.Complete = current;
+    item.complete = current;
     render();
-    alert('Failed to save: ' + e.message);
+    handleApiError(e, 'Failed to save');
   }
 }
 
 async function removeItem(id) {
-  if (!confirm('Delete this item?')) return;
-  allItems = allItems.filter(i => String(i.ID) !== String(id));
-  render();
+  if (!confirm('Delete this item? Any sub-items under it will be deleted too.')) return;
   try {
-    await api({ action: 'delete', id });
-  } catch (e) {
+    await api('deleteItem', { method: 'POST', body: { id } });
     await loadItems();
-    alert('Failed to delete: ' + e.message);
+  } catch (e) {
+    handleApiError(e, 'Failed to delete');
   }
 }
 
-async function renameList(oldName, newName) {
-  await api({ action: 'renameList', oldName, newName });
-  allItems.forEach(i => { if (i['List Name'] === oldName) i['List Name'] = newName; });
-  if (currentList === oldName) currentList = newName;
-  rebuildLists();
+async function handleIndent(id) {
+  try {
+    await api('indentItem', { method: 'POST', body: { id } });
+    await loadItems();
+  } catch (e) {
+    handleApiError(e, "Couldn't indent");
+  }
 }
 
-async function removeList(name) {
-  const count = allItems.filter(i => i['List Name'] === name).length;
-  const msg = count > 0
-    ? `Delete "${name}" and all ${count} item${count !== 1 ? 's' : ''} in it?`
-    : `Delete the empty list "${name}"?`;
+async function handleOutdent(id) {
+  try {
+    await api('outdentItem', { method: 'POST', body: { id } });
+    await loadItems();
+  } catch (e) {
+    handleApiError(e, "Couldn't outdent");
+  }
+}
+
+async function handleClearChecked() {
+  const checkedCount = allItems.filter(i => i.complete).length;
+  if (!checkedCount) return;
+  if (!confirm(`Clear ${checkedCount} checked item${checkedCount !== 1 ? 's' : ''}? You can bring them back with Restore.`)) return;
+  try {
+    await api('clearChecked', { method: 'POST', body: { listId: currentListId } });
+    await loadItems();
+  } catch (e) {
+    handleApiError(e, "Couldn't clear checked items");
+  }
+}
+
+async function handleRestoreCleared() {
+  try {
+    await api('restoreCleared', { method: 'POST', body: { listId: currentListId } });
+    await loadItems();
+  } catch (e) {
+    handleApiError(e, "Couldn't restore cleared items");
+  }
+}
+
+// ── LIST MUTATIONS ────────────────────────────────────────────────────────────
+async function handleAddList() {
+  const input = document.getElementById('newListName');
+  const name = input.value.trim();
+  if (!name) return;
+  if (lists.some(l => l.name === name)) {
+    showListError('A list with that name already exists.');
+    return;
+  }
+  try {
+    const res = await api('addList', { method: 'POST', body: { name } });
+    lists.push({ id: res.id, name: res.name });
+    lists.sort((a, b) => a.name.localeCompare(b.name));
+    currentListId = res.id;
+    input.value = '';
+    renderListPicker();
+    renderListModal();
+    await loadItems();
+  } catch (e) {
+    showListError('Add failed: ' + e.message);
+  }
+}
+
+async function handleRenameList(id, oldName) {
+  const newName = prompt(`Rename "${oldName}" to:`, oldName);
+  if (!newName || newName === oldName) return;
+  if (lists.some(l => l.name === newName)) {
+    showListError('That name already exists.');
+    return;
+  }
+  try {
+    await api('renameList', { method: 'POST', body: { id, name: newName } });
+    const list = lists.find(l => l.id === id);
+    if (list) list.name = newName;
+    lists.sort((a, b) => a.name.localeCompare(b.name));
+    renderListPicker();
+    renderListModal();
+  } catch (e) {
+    showListError('Rename failed: ' + e.message);
+  }
+}
+
+async function handleDeleteList(id, name) {
+  const knownCount = id === currentListId ? allItems.length : null;
+  const msg = knownCount !== null
+    ? (knownCount ? `Delete "${name}" and all ${knownCount} item${knownCount !== 1 ? 's' : ''} in it?` : `Delete the empty list "${name}"?`)
+    : `Delete "${name}"? Any items in it will be deleted too.`;
   if (!confirm(msg)) return;
-  await api({ action: 'deleteList', listName: name });
-  allItems = allItems.filter(i => i['List Name'] !== name);
-  if (currentList === name) currentList = lists.find(l => l !== name) || null;
-  rebuildLists();
-  renderListModal();
-  render();
+  try {
+    await api('deleteList', { method: 'POST', body: { id } });
+    lists = lists.filter(l => l.id !== id);
+    if (currentListId === id) currentListId = lists[0]?.id ?? null;
+    renderListPicker();
+    renderListModal();
+    await loadItems();
+  } catch (e) {
+    showListError('Delete failed: ' + e.message);
+  }
 }
 
-// ── NORMALIZE ─────────────────────────────────────────────────────────────────
-function normalizeItem(raw) {
-  return {
-    ID:          raw['ID']        ?? raw.id ?? '',
-    'List Name': raw['List Name'] ?? raw.listName ?? '',
-    What:        raw['What']      ?? raw.what ?? '',
-    Where:       raw['Where']     ?? raw.where ?? '',
-    When:        raw['When']      ?? raw.when ?? '',
-    Who:         raw['Who']       ?? raw.who ?? '',
-    Complete:    raw['Complete'] === true || raw['Complete'] === 'TRUE' || raw['Complete'] === true
-  };
-}
-
-function parseWhen(when) {
-  if (!when) return { date: '', time: '' };
-  const parts = String(when).split('|');
-  return { date: parts[0] || '', time: parts[1] || '' };
-}
-
-function formatWhenDisplay(when) {
-  const { date, time } = parseWhen(when);
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function formatWhenDisplay(dateStr, timeStr) {
   const parts = [];
-  if (date) {
-    const d = new Date(date + 'T00:00:00');
+  if (dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
     parts.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year:
       d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }));
   }
-  if (time) {
-    const [h, m] = time.split(':').map(Number);
+  if (timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
     const suffix = h >= 12 ? 'PM' : 'AM';
-    parts.push(`${((h % 12) || 12)}:${String(m).padStart(2,'0')} ${suffix}`);
+    parts.push(`${((h % 12) || 12)}:${String(m).padStart(2, '0')} ${suffix}`);
   }
   return parts.join(' · ');
 }
@@ -357,46 +558,52 @@ function looksLikeAddress(where) {
   return /\d/.test(where) || /\b(st|ave|blvd|rd|dr|ln|way|ct|pl|hwy)\b/i.test(where);
 }
 
-// ── LISTS ─────────────────────────────────────────────────────────────────────
-function rebuildLists() {
-  lists = [...new Set(allItems.map(i => i['List Name']).filter(Boolean))].sort();
-  if (!currentList && lists.length) currentList = lists[0];
-  if (currentList && !lists.includes(currentList)) currentList = lists[0] || null;
-  renderListPicker();
-}
-
-function renderListPicker() {
-  const sel = document.getElementById('listPicker');
-  sel.innerHTML = lists.length
-    ? lists.map(l => `<option value="${esc(l)}" ${l === currentList ? 'selected' : ''}>${esc(l)}</option>`).join('')
-    : '<option value="">No lists yet</option>';
-}
-
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render() {
   const container = document.getElementById('itemList');
-  const filtered  = allItems.filter(i => i['List Name'] === currentList);
 
-  if (!filtered.length) {
+  document.getElementById('clearCheckedBtn').style.display = allItems.some(i => i.complete) ? '' : 'none';
+  document.getElementById('restoreBtn').style.display = clearedCount > 0 ? '' : 'none';
+  document.getElementById('restoreBtn').textContent = `Restore ${clearedCount} cleared`;
+
+  if (!currentListId) {
     container.innerHTML = `<div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
-      <p>${currentList ? `No items in "${esc(currentList)}" yet.` : 'Create a list to get started.'}</p>
+      <p>Create a list to get started.</p>
     </div>`;
     return;
   }
 
-  const active   = filtered.filter(i => !i.Complete);
-  const complete = filtered.filter(i => i.Complete);
-  let html = '';
-
-  html += active.map(itemHTML).join('');
-  if (complete.length) {
-    html += `<p style="font-size:13px;color:var(--gray-5);margin:16px 0 8px;font-weight:500;">
-      Completed (${complete.length})</p>`;
-    html += complete.map(itemHTML).join('');
+  if (!allItems.length) {
+    const listName = lists.find(l => l.id === currentListId)?.name || '';
+    container.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+      <p>No items in "${esc(listName)}" yet.</p>
+    </div>`;
+    return;
   }
 
-  container.innerHTML = html;
+  const byParent = new Map();
+  const idSet = new Set(allItems.map(i => i.id));
+  allItems.forEach(i => {
+    const key = (i.parentId && idSet.has(i.parentId)) ? i.parentId : 0;
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key).push(i);
+  });
+  byParent.forEach(arr => arr.sort((a, b) => a.id - b.id));
+
+  function renderLevel(parentKey) {
+    const kids = byParent.get(parentKey) || [];
+    return kids.map(item => `
+      <div class="item-node">
+        ${itemHTML(item)}
+        <div class="item-children">${renderLevel(item.id)}</div>
+      </div>
+    `).join('');
+  }
+
+  container.innerHTML = renderLevel(0);
+
   container.querySelectorAll('.item-check input').forEach(cb => {
     cb.addEventListener('change', () => toggleComplete(cb.dataset.id, cb.dataset.complete === 'true'));
   });
@@ -406,27 +613,33 @@ function render() {
   container.querySelectorAll('.del-btn').forEach(btn => {
     btn.addEventListener('click', () => removeItem(btn.dataset.id));
   });
+  container.querySelectorAll('.indent-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleIndent(btn.dataset.id));
+  });
+  container.querySelectorAll('.outdent-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleOutdent(btn.dataset.id));
+  });
 }
 
 function itemHTML(item) {
-  const id      = String(item.ID);
-  const done    = item.Complete;
-  const when    = formatWhenDisplay(item.When);
-  const isAddr  = looksLikeAddress(item.Where);
-  const mapsUrl = item.Where
-    ? 'https://maps.google.com/maps?q=' + encodeURIComponent(item.Where)
+  const id      = String(item.id);
+  const done    = item.complete;
+  const when    = formatWhenDisplay(item.whenDate, item.whenTime);
+  const isAddr  = looksLikeAddress(item.where);
+  const mapsUrl = item.where
+    ? 'https://maps.google.com/maps?q=' + encodeURIComponent(item.where)
     : '';
 
   let metaHtml = '';
-  if (item.Where) {
+  if (item.where) {
     if (isAddr) {
       metaHtml += `<a class="meta map-link" href="${mapsUrl}" target="_blank" rel="noopener" title="Open in Maps">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        ${esc(item.Where)}</a>`;
+        ${esc(item.where)}</a>`;
     } else {
       metaHtml += `<span class="meta">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        ${esc(item.Where)}</span>`;
+        ${esc(item.where)}</span>`;
     }
   }
   if (when) {
@@ -434,21 +647,29 @@ function itemHTML(item) {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       ${esc(when)}</span>`;
   }
-  if (item.Who) {
+  if (item.who) {
     metaHtml += `<span class="meta">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      ${esc(item.Who)}</span>`;
+      ${esc(item.who)}</span>`;
   }
+
+  const canOutdent = item.parentId !== null;
 
   return `<div class="item${done ? ' complete' : ''}">
     <div class="item-check">
       <input type="checkbox" ${done ? 'checked' : ''} data-id="${esc(id)}" data-complete="${done}" aria-label="Mark complete">
     </div>
     <div class="item-body">
-      <div class="item-what">${esc(item.What)}</div>
+      <div class="item-what">${esc(item.what)}</div>
       ${metaHtml ? `<div class="item-meta">${metaHtml}</div>` : ''}
     </div>
     <div class="item-actions">
+      <button class="btn-icon outdent-btn" data-id="${esc(id)}" aria-label="Outdent" title="Outdent" ${canOutdent ? '' : 'disabled'}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 17l-5-5 5-5M20 12H6"/></svg>
+      </button>
+      <button class="btn-icon indent-btn" data-id="${esc(id)}" aria-label="Indent" title="Indent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M13 7l5 5-5 5M4 12h14"/></svg>
+      </button>
       <button class="btn-icon edit-btn" data-id="${esc(id)}" aria-label="Edit">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
@@ -476,14 +697,13 @@ function openItemModal(id = null) {
   document.getElementById('itemError').style.display = 'none';
 
   if (id) {
-    const item = allItems.find(i => String(i.ID) === String(id));
+    const item = allItems.find(i => i.id === Number(id));
     if (item) {
-      document.getElementById('f-what').value  = item.What  || '';
-      document.getElementById('f-where').value = item.Where || '';
-      document.getElementById('f-who').value   = item.Who   || '';
-      const { date, time } = parseWhen(item.When);
-      document.getElementById('f-date').value  = date;
-      document.getElementById('f-time').value  = time;
+      document.getElementById('f-what').value  = item.what  || '';
+      document.getElementById('f-where').value = item.where || '';
+      document.getElementById('f-who').value   = item.who   || '';
+      document.getElementById('f-date').value  = item.whenDate || '';
+      document.getElementById('f-time').value  = item.whenTime || '';
     }
   } else {
     document.getElementById('itemForm').reset();
@@ -508,10 +728,6 @@ async function submitItemForm() {
     return;
   }
 
-  const date  = document.getElementById('f-date').value;
-  const time  = document.getElementById('f-time').value;
-  const when  = (date || time) ? `${date}|${time}` : '';
-
   const saveBtn = document.getElementById('itemModalSave');
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving…';
@@ -519,9 +735,10 @@ async function submitItemForm() {
   try {
     await saveItem({
       what,
-      where: document.getElementById('f-where').value.trim(),
-      when,
-      who:   document.getElementById('f-who').value.trim(),
+      where:    document.getElementById('f-where').value.trim(),
+      whenDate: document.getElementById('f-date').value,
+      whenTime: document.getElementById('f-time').value,
+      who:      document.getElementById('f-who').value.trim(),
     });
     closeItemModal();
   } catch (e) {
@@ -552,70 +769,23 @@ function renderListModal() {
     container.innerHTML = '<p style="color:var(--gray-5);font-size:14px;">No lists yet.</p>';
     return;
   }
-  container.innerHTML = lists.map(name => `
+  container.innerHTML = lists.map(l => `
     <div class="list-item-row">
-      <span>${esc(name)}</span>
-      <button class="btn-icon rename-list-btn" data-name="${esc(name)}" aria-label="Rename ${esc(name)}">
+      <span>${esc(l.name)}</span>
+      <button class="btn-icon rename-list-btn" data-id="${l.id}" data-name="${esc(l.name)}" aria-label="Rename ${esc(l.name)}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <button class="btn-icon" style="color:var(--gray-5)" data-name="${esc(name)}" aria-label="Delete ${esc(name)}" onclick="handleDeleteList(this.dataset.name)">
+      <button class="btn-icon del-list-btn" style="color:var(--gray-5)" data-id="${l.id}" data-name="${esc(l.name)}" aria-label="Delete ${esc(l.name)}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
       </button>
     </div>`).join('');
 
   container.querySelectorAll('.rename-list-btn').forEach(btn => {
-    btn.addEventListener('click', () => handleRenameList(btn.dataset.name));
+    btn.addEventListener('click', () => handleRenameList(Number(btn.dataset.id), btn.dataset.name));
   });
-}
-
-async function handleAddList() {
-  const input = document.getElementById('newListName');
-  const name  = input.value.trim();
-  if (!name) return;
-  if (lists.includes(name)) {
-    showListError('A list with that name already exists.');
-    return;
-  }
-  lists.push(name);
-  lists.sort();
-  currentList = name;
-  renderListPicker();
-  renderListModal();
-  render();
-  input.value = '';
-
-  try {
-    await api({ action: 'add', data: JSON.stringify({
-      listName: name, what: '__placeholder__', where: '', when: '', who: '', complete: false
-    })});
-    await api({ action: 'delete', id: (await api({ action: 'list' })).items.find(
-      i => i['List Name'] === name && i['What'] === '__placeholder__')?.ID });
-  } catch (_) {}
-  await loadItems();
-}
-
-async function handleRenameList(oldName) {
-  const newName = prompt(`Rename "${oldName}" to:`, oldName);
-  if (!newName || newName === oldName) return;
-  if (lists.includes(newName)) {
-    showListError('That name already exists.');
-    return;
-  }
-  try {
-    await renameList(oldName, newName);
-    renderListModal();
-    render();
-  } catch (e) {
-    showListError('Rename failed: ' + e.message);
-  }
-}
-
-async function handleDeleteList(name) {
-  try {
-    await removeList(name);
-  } catch (e) {
-    showListError('Delete failed: ' + e.message);
-  }
+  container.querySelectorAll('.del-list-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleDeleteList(Number(btn.dataset.id), btn.dataset.name));
+  });
 }
 
 function showListError(msg) {
@@ -630,12 +800,18 @@ function esc(str) {
 }
 
 // ── EVENTS ────────────────────────────────────────────────────────────────────
+loginBtn.addEventListener('click', attemptLogin);
+loginPw.addEventListener('keydown', e => { if (e.key === 'Enter') attemptLogin(); });
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
 document.getElementById('listPicker').addEventListener('change', e => {
-  currentList = e.target.value;
-  render();
+  currentListId = e.target.value ? Number(e.target.value) : null;
+  loadItems();
 });
 document.getElementById('manageListsBtn').addEventListener('click', openListModal);
 document.getElementById('addBtn').addEventListener('click', () => openItemModal());
+document.getElementById('clearCheckedBtn').addEventListener('click', handleClearChecked);
+document.getElementById('restoreBtn').addEventListener('click', handleRestoreCleared);
 
 document.getElementById('itemModalClose').addEventListener('click', closeItemModal);
 document.getElementById('itemModalCancel').addEventListener('click', closeItemModal);
@@ -657,14 +833,14 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
-if (SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL') {
-  document.getElementById('itemList').innerHTML =
-    `<div class="empty"><p style="color:var(--red)">
-      Open <code>index.html</code> and set <code>SCRIPT_URL</code> to your deployed Apps Script URL.<br><br>
-      See <code>SETUP.md</code> for instructions.
-    </p></div>`;
+if (API_URL.includes('YOUR_')) {
+  document.body.innerHTML = '<div class="error-msg" style="margin:24px">Set API_URL in index.html to your deployed api.php URL.</div>';
 } else {
-  loadItems();
+  auth = loadAuth();
+  if (auth) {
+    showApp();
+    bootstrapApp();
+  }
 }
 </script>
 </body>

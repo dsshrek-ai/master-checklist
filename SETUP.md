@@ -1,79 +1,66 @@
 # Master Checklist — Setup Guide
 
-## Step 1: Create the Google Sheet
+A multi-list checklist app — items have What/Where/When/Who, can be checked
+off, indented into children/grandchildren, and checked items can be cleared
+(hidden) or restored. Backed by **MyDataWorld**, the same shared database
+[T-Minus](https://github.com/dsshrek-ai/T-Minus) uses — one login works
+across every app on it, and lists/items are private per account.
 
-1. Go to [sheets.google.com](https://sheets.google.com) and create a new spreadsheet
-2. Name it **Master Checklist**
-3. In row 1, add these exact headers (one per column, A through G):
+## 1. Add the tables to MyDataWorld
 
-   | A  | B         | C    | D     | E    | F   | G        |
-   |----|-----------|------|-------|------|-----|----------|
-   | ID | List Name | What | Where | When | Who | Complete |
+MyDataWorld (and its `users`/`sessions` tables) already exists from setting
+up T-Minus — don't recreate it. Open **phpMyAdmin**, select the MyDataWorld
+database, go to the **SQL** tab, and run everything in
+[`api/schema.sql`](api/schema.sql). It only adds two new tables:
+`checklist_lists` and `checklist_items`.
 
-4. Copy the **Spreadsheet ID** from the URL:
-   `https://docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`
+## 2. Deploy the API
 
----
+1. Copy `api/config.example.php` to `api/config.php` and fill in the same
+   `DB_NAME`, `DB_USER`, and `DB_PASS` you used for T-Minus's `config.php` —
+   it's the same database.
+2. Upload the whole `api/` folder via FTP/File Manager to a folder on
+   seniorfamily.org — e.g. `seniorfamily.org/checklist-api/`.
+3. You probably don't need to create a new account: any username/password
+   that already works for T-Minus (or another MyDataWorld app) works here
+   too. If you do want a brand-new account, visit
+   `https://seniorfamily.org/checklist-api/hash-generator.php`, fill in a
+   username/password/display name, and run the generated `INSERT` statement
+   in phpMyAdmin's SQL tab. **Delete `hash-generator.php` from the server**
+   afterward — it has no login of its own.
 
-## Step 2: Deploy the Apps Script
+## 3. Point the app at your API
 
-1. In your Sheet, go to **Extensions → Apps Script**
-2. Delete the default `myFunction` code
-3. Paste in the contents of `Code.gs` from this folder
-4. Replace `YOUR_SPREADSHEET_ID` on line 2 with the ID you copied above
-5. Click **Save** (floppy disk icon)
-6. Click **Deploy → New deployment**
-7. Click the gear icon next to "Type" and choose **Web app**
-8. Set:
-   - **Execute as:** Me
-   - **Who has access:** Anyone
-9. Click **Deploy**
-10. Click **Authorize access** and follow the Google prompts
-11. Copy the **Web app URL** — it looks like:
-    `https://script.google.com/macros/s/ABC123.../exec`
-
----
-
-## Step 3: Configure the App
-
-Open `index.html` in a text editor and find this line near the bottom of the `<script>` block:
+In `index.html`, update this line to match wherever you uploaded the `api/`
+folder in step 2:
 
 ```js
-const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL';
+const API_URL = 'https://seniorfamily.org/checklist-api/api.php';
 ```
 
-Replace `YOUR_APPS_SCRIPT_URL` with the URL you copied in Step 2. Save the file.
+## 4. Publish to GitHub Pages
 
----
+1. Push this folder's contents to the `main` branch of
+   `dsshrek-ai/master-checklist` (already set up as the repo's remote).
+2. In the repo on GitHub, go to **Settings → Pages**.
+3. Under "Source", select **Deploy from a branch → main → / (root)**.
+4. Your app will be live at `https://dsshrek-ai.github.io/master-checklist/`.
 
-## Step 4: Publish to GitHub Pages
-
-1. Create a new **public** repository on GitHub (e.g. `master-checklist`)
-2. Push this folder's contents to the `main` branch:
-   ```
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/YOUR_USERNAME/master-checklist.git
-   git push -u origin main
-   ```
-3. In the repo on GitHub, go to **Settings → Pages**
-4. Under "Source", select **Deploy from a branch → main → / (root)**
-5. Click **Save** — your app will be live at:
-   `https://YOUR_USERNAME.github.io/master-checklist/`
-
----
-
-## Step 5: Install as PWA (optional)
+## 5. Install as PWA (optional)
 
 - **iPhone/iPad:** Open the URL in Safari → Share → Add to Home Screen
 - **Android:** Open in Chrome → three-dot menu → Add to Home Screen
 - **Desktop Chrome:** Click the install icon in the address bar
 
----
-
 ## Notes
 
-- The Google Sheet is the source of truth — you can view/edit data there anytime
-- The Apps Script runs as your Google account, so the Sheet stays private even though the app URL is public
-- If you redeploy the Apps Script after changes, the URL stays the same — no need to update the app
+- Lists and items are keyed by user id — everyone with a MyDataWorld login
+  sees only their own lists.
+- Indenting is capped at grandchild (top level → child → grandchild). The
+  indent button nests an item under the item directly above it at the same
+  level; outdent promotes it back up one level.
+- Deleting an item deletes its children/grandchildren with it (cascades in
+  the database).
+- "Clear checked" hides checked items without deleting them; "Restore"
+  brings back everything currently hidden for that list. Nothing is
+  permanently lost until you explicitly delete an item.
