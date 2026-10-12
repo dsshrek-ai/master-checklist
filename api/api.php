@@ -82,6 +82,46 @@ function requireUser(): array {
   return $result;
 }
 
+// Using the app also needs an app_access grant for 'master-checklist' in My
+// Apps Hub -- a MyDataWorld login on its own isn't enough.
+const APP_KEY = 'master-checklist';
+const NO_ACCESS_MESSAGE = 'Your login isn\'t set up for Master Checklist yet. Ask to be granted it in My Apps Hub.';
+
+function hasAppAccess(int $userId): bool {
+  $stmt = db()->prepare('SELECT 1 FROM app_access aa JOIN apps a ON a.id = aa.app_id WHERE aa.user_id = ? AND a.app_key = ?');
+  $appKey = APP_KEY;
+  $stmt->bind_param('is', $userId, $appKey);
+  $stmt->execute();
+  $ok = (bool)$stmt->get_result()->fetch_row();
+  $stmt->close();
+  return $ok;
+}
+
+function logAppUsage(int $userId): void {
+  try {
+    $stmt = db()->prepare(
+      'INSERT INTO app_usage_log (user_id, app_key, access_date, first_seen_at, last_seen_at, hit_count)
+       VALUES (?, ?, CURDATE(), NOW(), NOW(), 1)
+       ON DUPLICATE KEY UPDATE last_seen_at = NOW(), hit_count = hit_count + 1'
+    );
+    $appKey = APP_KEY;
+    $stmt->bind_param('is', $userId, $appKey);
+    $stmt->execute();
+    $stmt->close();
+  } catch (mysqli_sql_exception $e) {
+    // best-effort
+  }
+}
+
+function requireMember(): array {
+  $user = requireUser();
+  if (!hasAppAccess((int)$user['id'])) {
+    respond(['error' => NO_ACCESS_MESSAGE, 'noAccess' => true], 403);
+  }
+  logAppUsage((int)$user['id']);
+  return $user;
+}
+
 function requireListOwner(array $user, int $listId): array {
   $stmt = db()->prepare('SELECT * FROM checklist_lists WHERE id = ?');
   $stmt->bind_param('i', $listId);
@@ -206,6 +246,9 @@ switch ($action) {
     if (!$user || !password_verify($password, $user['password_hash'])) {
       fail('Invalid username or password', 401);
     }
+    if (!hasAppAccess((int)$user['id'])) {
+      respond(['error' => NO_ACCESS_MESSAGE, 'noAccess' => true], 403);
+    }
 
     $token = bin2hex(random_bytes(32));
     $days = SESSION_LIFETIME_DAYS;
@@ -232,7 +275,7 @@ switch ($action) {
   }
 
   case 'listLists': {
-    $user = requireUser();
+    $user = requireMember();
     $stmt = db()->prepare('SELECT * FROM checklist_lists WHERE user_id = ? ORDER BY name');
     $stmt->bind_param('i', $user['id']);
     $stmt->execute();
@@ -242,7 +285,7 @@ switch ($action) {
   }
 
   case 'addList': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $name = trim((string)($body['name'] ?? ''));
     if ($name === '') {
@@ -259,7 +302,7 @@ switch ($action) {
   }
 
   case 'renameList': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $id = (int)($body['id'] ?? 0);
     $name = trim((string)($body['name'] ?? ''));
@@ -277,7 +320,7 @@ switch ($action) {
   }
 
   case 'deleteList': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $id = (int)($body['id'] ?? 0);
     if ($id <= 0) {
@@ -294,7 +337,7 @@ switch ($action) {
   }
 
   case 'listItems': {
-    $user = requireUser();
+    $user = requireMember();
     $listId = (int)($_GET['listId'] ?? 0);
     if ($listId <= 0) {
       fail('listId is required');
@@ -321,7 +364,7 @@ switch ($action) {
   }
 
   case 'addItem': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $listId = (int)($body['listId'] ?? 0);
     $what = trim((string)($body['what'] ?? ''));
@@ -335,11 +378,27 @@ switch ($action) {
     $whenTime = nullableStr($body['whenTime'] ?? null);
     $who = nullableStr($body['who'] ?? null);
 
+    // Optional parentId adds a sub-item directly under an existing item:
+    // child (depth 1) or grandchild (depth 2), never deeper.
+    $parentId = (int)($body['parentId'] ?? 0);
+    $depth = 0;
+    if ($parentId > 0) {
+      $parent = requireItemOwner($user, $parentId);
+      if ((int)$parent['list_id'] !== $listId) {
+        fail('That parent item is in a different list');
+      }
+      $depth = (int)$parent['depth'] + 1;
+      if ($depth > 2) {
+        fail('Can\'t add a sub-item there — grandchild is the deepest level allowed');
+      }
+    }
+    $parentParam = $parentId > 0 ? $parentId : null;
+
     $stmt = db()->prepare(
       'INSERT INTO checklist_items (list_id, user_id, parent_id, depth, what, where_text, when_date, when_time, who)
-       VALUES (?, ?, NULL, 0, ?, ?, ?, ?, ?)'
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    $stmt->bind_param('iisssss', $listId, $user['id'], $what, $where, $whenDate, $whenTime, $who);
+    $stmt->bind_param('iiiisssss', $listId, $user['id'], $parentParam, $depth, $what, $where, $whenDate, $whenTime, $who);
     $stmt->execute();
     $newId = $stmt->insert_id;
     $stmt->close();
@@ -348,7 +407,7 @@ switch ($action) {
   }
 
   case 'updateItem': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $id = (int)($body['id'] ?? 0);
     if ($id <= 0) {
@@ -408,7 +467,7 @@ switch ($action) {
   }
 
   case 'deleteItem': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $id = (int)($body['id'] ?? 0);
     if ($id <= 0) {
@@ -426,7 +485,7 @@ switch ($action) {
   }
 
   case 'indentItem': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $id = (int)($body['id'] ?? 0);
     if ($id <= 0) {
@@ -472,7 +531,7 @@ switch ($action) {
   }
 
   case 'outdentItem': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $id = (int)($body['id'] ?? 0);
     if ($id <= 0) {
@@ -509,7 +568,7 @@ switch ($action) {
   }
 
   case 'clearChecked': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $listId = (int)($body['listId'] ?? 0);
     if ($listId <= 0) {
@@ -529,7 +588,7 @@ switch ($action) {
   }
 
   case 'deleteChecked': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $listId = (int)($body['listId'] ?? 0);
     if ($listId <= 0) {
@@ -549,7 +608,7 @@ switch ($action) {
   }
 
   case 'restoreCleared': {
-    $user = requireUser();
+    $user = requireMember();
     $body = jsonBody();
     $listId = (int)($body['listId'] ?? 0);
     if ($listId <= 0) {

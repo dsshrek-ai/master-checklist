@@ -272,6 +272,7 @@ let clearedCount = 0;      // cleared items in the currently selected list
 let lists        = [];     // [{ id, name }]
 let currentListId = null;
 let editingId    = null;
+let addingParentId = null; // set when the item modal is adding a sub-item
 
 const loginScreen = document.getElementById('loginScreen');
 const loginUsername = document.getElementById('loginUsername');
@@ -301,16 +302,22 @@ async function api(action, { method = 'GET', body = null, query = {} } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json();
-  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!res.ok || data.error) {
+    const err = new Error(data.error || `HTTP ${res.status}`);
+    err.noAccess = !!data.noAccess; // logged in, but not granted Master Checklist in My Apps Hub
+    throw err;
+  }
   return data;
 }
 
 function isSessionError(e) {
-  return /session|authoriz/i.test(e.message);
+  return e.noAccess || /session|authoriz/i.test(e.message);
 }
 
 function handleApiError(e, fallbackPrefix = 'Something went wrong') {
-  if (isSessionError(e)) {
+  if (e.noAccess) {
+    showLogin(e.message);
+  } else if (isSessionError(e)) {
     showLogin('Your saved login stopped working. Please log in again.');
   } else {
     alert(`${fallbackPrefix}: ${e.message}`);
@@ -410,7 +417,7 @@ async function saveItem(itemData) {
   if (editingId) {
     await api('updateItem', { method: 'POST', body: { id: editingId, ...itemData } });
   } else {
-    await api('addItem', { method: 'POST', body: { listId: currentListId, ...itemData } });
+    await api('addItem', { method: 'POST', body: { listId: currentListId, parentId: addingParentId, ...itemData } });
   }
   await loadItems();
 }
@@ -628,6 +635,9 @@ function render() {
   container.querySelectorAll('.del-btn').forEach(btn => {
     btn.addEventListener('click', () => removeItem(btn.dataset.id));
   });
+  container.querySelectorAll('.add-sub-btn').forEach(btn => {
+    btn.addEventListener('click', () => openItemModal(null, Number(btn.dataset.id)));
+  });
   container.querySelectorAll('.indent-btn').forEach(btn => {
     btn.addEventListener('click', () => handleIndent(btn.dataset.id));
   });
@@ -669,6 +679,7 @@ function itemHTML(item) {
   }
 
   const canOutdent = item.parentId !== null;
+  const canAddSub = item.depth < 2; // grandchild is the deepest level
 
   return `<div class="item${done ? ' complete' : ''}">
     <div class="item-check">
@@ -679,6 +690,9 @@ function itemHTML(item) {
       ${metaHtml ? `<div class="item-meta">${metaHtml}</div>` : ''}
     </div>
     <div class="item-actions">
+      ${canAddSub ? `<button class="btn-icon add-sub-btn" data-id="${esc(id)}" aria-label="Add sub-item under ${esc(item.what)}" title="Add sub-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>` : ''}
       <button class="btn-icon outdent-btn" data-id="${esc(id)}" aria-label="Outdent" title="Outdent" ${canOutdent ? '' : 'disabled'}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 17l-5-5 5-5M20 12H6"/></svg>
       </button>
@@ -705,10 +719,13 @@ function showError(msg) {
 }
 
 // ── ITEM MODAL ────────────────────────────────────────────────────────────────
-function openItemModal(id = null) {
+function openItemModal(id = null, parentId = null) {
   editingId = id;
+  addingParentId = id ? null : parentId;
   const modal = document.getElementById('itemModal');
-  document.getElementById('itemModalTitle').textContent = id ? 'Edit item' : 'Add item';
+  const parent = addingParentId ? allItems.find(i => i.id === addingParentId) : null;
+  document.getElementById('itemModalTitle').textContent = id ? 'Edit item'
+    : parent ? `Add sub-item under "${parent.what}"` : 'Add item';
   document.getElementById('itemError').style.display = 'none';
 
   if (id) {
@@ -731,6 +748,7 @@ function openItemModal(id = null) {
 function closeItemModal() {
   document.getElementById('itemModal').classList.remove('open');
   editingId = null;
+  addingParentId = null;
 }
 
 async function submitItemForm() {

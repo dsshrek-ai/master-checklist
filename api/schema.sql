@@ -38,3 +38,20 @@ CREATE TABLE checklist_items (
   FOREIGN KEY (user_id)   REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (parent_id) REFERENCES checklist_items(id) ON DELETE CASCADE
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- 2026-10-12: require a My Apps Hub grant (app_access) ----------
+-- From this version on, api.php only lets in logins that have an app_access
+-- row for 'master-checklist' (the app is already registered in the Hub's
+-- `apps` table). Run this ONCE, BEFORE uploading the new api.php, so everyone
+-- who already has lists keeps access. Safe to re-run.
+
+INSERT INTO app_access (user_id, app_id)
+SELECT DISTINCT l.user_id, a.id
+FROM checklist_lists l JOIN apps a ON a.app_key = 'master-checklist'
+ON DUPLICATE KEY UPDATE user_id = app_access.user_id;
+
+-- To give someone new access later:
+-- INSERT INTO app_access (user_id, app_id)
+-- SELECT u.id, a.id FROM users u JOIN apps a ON a.app_key = 'master-checklist'
+-- WHERE u.username = 'someone@example.com'
+-- ON DUPLICATE KEY UPDATE user_id = app_access.user_id;
