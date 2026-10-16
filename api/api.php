@@ -172,6 +172,7 @@ function shapeItem(array $row): array {
     'whenDate'  => $row['when_date'],
     'whenTime'  => $row['when_time'] !== null ? substr($row['when_time'], 0, 5) : null,
     'who'       => $row['who'],
+    'notes'     => $row['notes'],
     'complete'  => (bool)$row['complete'],
     'clearedAt' => $row['cleared_at'],
   ];
@@ -377,6 +378,7 @@ switch ($action) {
     $whenDate = nullableStr($body['whenDate'] ?? null);
     $whenTime = nullableStr($body['whenTime'] ?? null);
     $who = nullableStr($body['who'] ?? null);
+    $notes = nullableStr($body['notes'] ?? null);
 
     // Optional parentId adds a sub-item directly under an existing item:
     // child (depth 1) or grandchild (depth 2), never deeper.
@@ -395,10 +397,10 @@ switch ($action) {
     $parentParam = $parentId > 0 ? $parentId : null;
 
     $stmt = db()->prepare(
-      'INSERT INTO checklist_items (list_id, user_id, parent_id, depth, what, where_text, when_date, when_time, who)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO checklist_items (list_id, user_id, parent_id, depth, what, where_text, when_date, when_time, who, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    $stmt->bind_param('iiiisssss', $listId, $user['id'], $parentParam, $depth, $what, $where, $whenDate, $whenTime, $who);
+    $stmt->bind_param('iiiissssss', $listId, $user['id'], $parentParam, $depth, $what, $where, $whenDate, $whenTime, $who, $notes);
     $stmt->execute();
     $newId = $stmt->insert_id;
     $stmt->close();
@@ -421,6 +423,7 @@ switch ($action) {
       'whenDate' => 'when_date',
       'whenTime' => 'when_time',
       'who'      => 'who',
+      'notes'    => 'notes',
       'complete' => 'complete',
     ];
 

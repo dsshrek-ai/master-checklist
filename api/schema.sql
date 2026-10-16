@@ -30,6 +30,7 @@ CREATE TABLE checklist_items (
   when_date   DATE NULL,
   when_time   TIME NULL,
   who         VARCHAR(255) NULL,
+  notes       TEXT NULL,
   complete    TINYINT(1) NOT NULL DEFAULT 0,
   cleared_at  TIMESTAMP NULL DEFAULT NULL,
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -55,3 +56,9 @@ ON DUPLICATE KEY UPDATE user_id = app_access.user_id;
 -- SELECT u.id, a.id FROM users u JOIN apps a ON a.app_key = 'master-checklist'
 -- WHERE u.username = 'someone@example.com'
 -- ON DUPLICATE KEY UPDATE user_id = app_access.user_id;
+
+-- ---------- 2026-10-16: free-text notes per item ----------
+-- Existing installs only (a fresh install already has `notes` from the CREATE
+-- TABLE above). Run this ONCE, BEFORE uploading the new api.php.
+
+ALTER TABLE checklist_items ADD COLUMN notes TEXT NULL AFTER who;
