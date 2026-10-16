@@ -203,6 +203,29 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 .list-add-row input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--gray-3);
   border-radius: var(--radius); font-size: 15px; outline: none; }
 .list-add-row input:focus { border-color: var(--blue); }
+.check-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 15px; cursor: pointer; }
+.check-row input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--blue); }
+.check-row small { display: block; color: var(--gray-5); font-size: 12px; }
+
+/* ── print ── */
+#printArea { display: none; }
+@media print {
+  @page { margin: 14mm; }
+  body { background: #fff; color: #000; font-size: 11pt; }
+  body > *:not(#printArea) { display: none !important; }
+  #printArea { display: block; }
+  #printArea h1 { font-size: 16pt; margin-bottom: 2pt; }
+  #printArea .p-sub { font-size: 9pt; color: #555; margin-bottom: 10pt; }
+  #printArea ul { list-style: none; padding-left: 0; }
+  #printArea ul ul { padding-left: 18pt; }
+  #printArea li > .p-row { display: flex; gap: 7pt; padding: 3pt 0; break-inside: avoid; }
+  #printArea .p-box { flex-shrink: 0; width: 10pt; height: 10pt; margin-top: 2.5pt;
+    border: 1pt solid #000; border-radius: 2pt; font-size: 8pt; line-height: 9pt; text-align: center; }
+  #printArea .p-done > .p-row .p-what { text-decoration: line-through; color: #666; }
+  #printArea .p-what { font-weight: 600; }
+  #printArea .p-detail { font-size: 9pt; color: #444; }
+  #printArea .p-notes { font-size: 9pt; color: #444; white-space: pre-wrap; }
+}
 </style>
 </head>
 <body>
@@ -233,6 +256,9 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
       <select id="listPicker" aria-label="Select list"></select>
       <button class="btn" id="shareBtn" title="Share this list" aria-label="Share this list" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </button>
+      <button class="btn" id="printBtn" title="Print this list" aria-label="Print this list" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       </button>
       <button class="btn" id="manageListsBtn" title="Manage lists">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -362,6 +388,28 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
   </div>
 </div>
 
+<!-- Print options modal -->
+<div class="modal-backdrop" id="printModal" role="dialog" aria-modal="true" aria-labelledby="printModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="printModalTitle">Print list</h2>
+      <button class="btn-icon" id="printModalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <label class="check-row"><input type="checkbox" id="printIncludeChecked">
+      <span>Include checked items<small>Checked items that still have unchecked sub-items always print.</small></span></label>
+    <label class="check-row"><input type="checkbox" id="printIncludeDetails">
+      <span>Include details<small>Where, when, who, contact, notes and file names.</small></span></label>
+    <div class="modal-footer">
+      <button class="btn" id="printModalCancel">Cancel</button>
+      <button class="btn btn-primary" id="printGoBtn">Print</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
 <script src="mdw-prefs.js?v=1"></script>
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
@@ -371,6 +419,7 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // matches api.php
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const AUTH_KEY = 'checklistAuth';
 const COLLAPSED_KEY = 'checklistCollapsed';
+const PRINT_PREFS_KEY = 'checklistPrintPrefs';
 let auth         = null;   // { token, displayName }
 let allItems     = [];     // items in the currently selected list (cleared ones excluded)
 let clearedCount = 0;      // cleared items in the currently selected list
@@ -642,6 +691,7 @@ function renderListPicker() {
 
   const list = currentList();
   document.getElementById('shareBtn').style.display = list ? '' : 'none';
+  document.getElementById('printBtn').style.display = list ? '' : 'none';
   document.getElementById('shareInfo').textContent = !list ? ''
     : !list.isOwner ? `Shared by ${list.ownerName}`
     : list.shareCount ? `Shared with ${list.shareCount} ${list.shareCount === 1 ? 'person' : 'people'}` : '';
@@ -1385,10 +1435,90 @@ function closeAllOverlays() {
   closeItemModal();
   closeListModal();
   closeShareModal();
+  closePrintModal();
 }
 
 function anyModalOpen() {
   return !!document.querySelector('.modal-backdrop.open');
+}
+
+// ── PRINT ─────────────────────────────────────────────────────────────────────
+function loadPrintPrefs() {
+  try { return { includeChecked: true, includeDetails: true, ...JSON.parse(localStorage.getItem(PRINT_PREFS_KEY)) }; }
+  catch { return { includeChecked: true, includeDetails: true }; }
+}
+
+function openPrintModal() {
+  const prefs = loadPrintPrefs();
+  document.getElementById('printIncludeChecked').checked = prefs.includeChecked;
+  document.getElementById('printIncludeDetails').checked = prefs.includeDetails;
+  document.getElementById('printModal').classList.add('open');
+}
+
+function closePrintModal() {
+  document.getElementById('printModal').classList.remove('open');
+}
+
+function printList() {
+  const prefs = {
+    includeChecked: document.getElementById('printIncludeChecked').checked,
+    includeDetails: document.getElementById('printIncludeDetails').checked,
+  };
+  try { localStorage.setItem(PRINT_PREFS_KEY, JSON.stringify(prefs)); } catch (_) {}
+  closePrintModal();
+  document.getElementById('printArea').innerHTML = buildPrintHtml(prefs);
+  window.print();
+}
+
+function buildPrintHtml({ includeChecked, includeDetails }) {
+  const list = currentList();
+  const byParent = new Map();
+  const idSet = new Set(allItems.map(i => i.id));
+  allItems.forEach(i => {
+    const key = (i.parentId && idSet.has(i.parentId)) ? i.parentId : 0;
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key).push(i);
+  });
+  byParent.forEach(arr => arr.sort((a, b) => (a.sortOrder - b.sortOrder) || (a.id - b.id)));
+
+  // A checked item still prints when something under it is unchecked, so
+  // those sub-items keep their context.
+  const hasOpenBelow = id => (byParent.get(id) || []).some(k => !k.complete || hasOpenBelow(k.id));
+  const shows = item => includeChecked || !item.complete || hasOpenBelow(item.id);
+
+  function details(item) {
+    if (!includeDetails) return '';
+    const parts = [];
+    if (item.where) parts.push(item.where);
+    const when = formatWhenDisplay(item.whenDate, item.whenTime);
+    if (when) parts.push(when);
+    if (item.who) parts.push(`Who: ${item.who}`);
+    const contact = [item.contactName, item.phoneNumber].filter(Boolean).join(' ');
+    if (contact) parts.push(`Contact: ${contact}`);
+    if (item.attachments.length) parts.push(`Files: ${item.attachments.map(a => a.fileName).join(', ')}`);
+    return (parts.length ? `<div class="p-detail">${esc(parts.join(' · '))}</div>` : '')
+      + (item.notes ? `<div class="p-notes">${esc(item.notes)}</div>` : '');
+  }
+
+  function level(parentKey) {
+    const kids = (byParent.get(parentKey) || []).filter(shows);
+    if (!kids.length) return '';
+    return `<ul>${kids.map(item => `
+      <li class="${item.complete ? 'p-done' : ''}">
+        <div class="p-row">
+          <span class="p-box">${item.complete ? '&#10003;' : ''}</span>
+          <div><div class="p-what">${esc(item.what)}</div>${details(item)}</div>
+        </div>
+        ${level(item.id)}
+      </li>`).join('')}</ul>`;
+  }
+
+  const done = allItems.filter(i => i.complete).length;
+  const printed = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const body = level(0) || '<p>Nothing to print — every item is checked.</p>';
+  return `<h1>${esc(list ? list.name : 'Checklist')}</h1>
+    <div class="p-sub">Printed ${esc(printed)} · ${done} of ${allItems.length} done${includeChecked ? '' : ' · checked items left out'}</div>
+    ${body}`;
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
@@ -1407,6 +1537,11 @@ document.getElementById('listPicker').addEventListener('change', e => {
 });
 document.getElementById('manageListsBtn').addEventListener('click', openListModal);
 document.getElementById('shareBtn').addEventListener('click', () => { if (currentListId) openShareModal(currentListId); });
+document.getElementById('printBtn').addEventListener('click', () => { if (currentListId) openPrintModal(); });
+document.getElementById('printModalClose').addEventListener('click', closePrintModal);
+document.getElementById('printModalCancel').addEventListener('click', closePrintModal);
+document.getElementById('printModal').addEventListener('click', e => { if (e.target === e.currentTarget) closePrintModal(); });
+document.getElementById('printGoBtn').addEventListener('click', printList);
 document.getElementById('addBtn').addEventListener('click', () => openItemModal());
 document.getElementById('clearCheckedBtn').addEventListener('click', handleClearChecked);
 document.getElementById('deleteCheckedBtn').addEventListener('click', handleDeleteChecked);
@@ -1511,7 +1646,7 @@ document.getElementById('shareLeaveBtn').addEventListener('click', async () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (menuItemId !== null) { closeItemMenu(); return; }
-    closeItemModal(); closeListModal(); closeShareModal();
+    closeItemModal(); closeListModal(); closeShareModal(); closePrintModal();
   }
 });
 
