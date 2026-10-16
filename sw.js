@@ -1,5 +1,6 @@
-const CACHE = 'master-checklist-v4';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'master-checklist-v5';
+// Relative, so they resolve under /master-checklist/ on GitHub Pages.
+const ASSETS = ['./', './index.html', './manifest.json', './mdw-prefs.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

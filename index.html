@@ -51,12 +51,14 @@ header { position: sticky; top: 0; z-index: 10; background: var(--gray-0);
 .icon-link { font-size: 13px; color: var(--gray-7); background: none; border: none;
   cursor: pointer; text-decoration: underline; white-space: nowrap; }
 .list-row { display: flex; align-items: center; gap: 8px; }
-#listPicker { flex: 1; font-size: 15px; padding: 7px 10px;
+#listPicker { flex: 1; min-width: 0; font-size: 15px; padding: 7px 10px;
   border: 1px solid var(--gray-3); border-radius: var(--radius);
   background: var(--gray-0); color: var(--gray-9); appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 8px center; padding-right: 30px; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.toolbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.toolbar-row:empty { display: none; }
+.share-info { font-size: 12px; color: var(--gray-7); margin-right: auto; }
 main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 #fab { position: fixed; bottom: 24px; right: 50%; transform: translateX(50%);
   max-width: 608px; width: calc(100% - 32px); padding: 0 16px; pointer-events: none;
@@ -90,13 +92,21 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 .item-children { margin-left: 22px; }
 .item { background: var(--gray-0); border: 1px solid var(--gray-3);
   border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
-  display: flex; align-items: flex-start; gap: 10px; transition: opacity .2s; }
+  display: flex; align-items: flex-start; gap: 8px; transition: opacity .2s; }
+.item.has-toggle { padding-left: 8px; }
 .item.complete { opacity: .5; }
+.item-toggle { width: 20px; height: 20px; margin-top: 1px; flex-shrink: 0; padding: 0;
+  border: none; background: none; color: var(--gray-7); cursor: pointer; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; }
+.item-toggle:hover { background: var(--gray-2); }
+.item-toggle svg { width: 14px; height: 14px; transition: transform .15s; }
+.item-toggle.collapsed svg { transform: rotate(-90deg); }
+.item-toggle-spacer { width: 20px; flex-shrink: 0; }
 .item-check { margin-top: 2px; flex-shrink: 0; }
 .item-check input[type=checkbox] { width: 18px; height: 18px; cursor: pointer;
   accent-color: var(--blue); }
 .item-body { flex: 1; min-width: 0; }
-.item-what { font-size: 15px; font-weight: 500; }
+.item-what { font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
 .item.complete .item-what { text-decoration: line-through; color: var(--gray-5); }
 .item-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
 .meta { display: inline-flex; align-items: center; gap: 4px;
@@ -105,12 +115,40 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 .meta.map-link { color: var(--blue); cursor: pointer; text-decoration: underline;
   text-decoration-color: transparent; }
 .meta.map-link:hover { text-decoration-color: var(--blue); }
+.meta.overdue { color: var(--red); font-weight: 600; }
+.meta.today { color: var(--blue); font-weight: 600; }
+.meta.chip { padding: 1px 9px; border: 1px solid var(--gray-3); border-radius: 12px;
+  color: var(--blue); text-decoration: none; font-weight: 500; }
+.meta.chip:hover { background: var(--blue-lt); }
+.meta.sub-hint { color: var(--gray-5); }
 .item-notes { font-size: 13px; color: var(--gray-7); margin-top: 5px;
   white-space: pre-wrap; overflow-wrap: anywhere; }
 .item.complete .item-notes { color: var(--gray-5); }
+.item-files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.thumb { width: 52px; height: 52px; padding: 0; border-radius: 6px; border: 1px solid var(--gray-3);
+  background: var(--gray-2); overflow: hidden; cursor: pointer; font-size: 20px;
+  display: flex; align-items: center; justify-content: center; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.file-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 180px; padding: 4px 8px;
+  font-size: 12px; border: 1px solid var(--gray-3); border-radius: 6px; background: var(--gray-1);
+  color: var(--gray-7); cursor: pointer; }
+.file-chip svg { width: 14px; height: 14px; flex-shrink: 0; }
+.thumb svg { width: 22px; height: 22px; color: var(--gray-7); }
+.file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-actions { display: flex; gap: 0px; flex-shrink: 0; }
 .item-actions .btn-icon { padding: 5px; }
-.item-actions .btn-icon svg { width: 15px; height: 15px; }
+.item-actions .btn-icon svg { width: 16px; height: 16px; }
+
+/* ── item ⋯ menu ── */
+.item-menu { position: fixed; z-index: 90; display: none; min-width: 210px; padding: 4px;
+  background: var(--gray-0); border: 1px solid var(--gray-3); border-radius: 10px; box-shadow: var(--shadow-md); }
+.menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
+  border: none; background: none; border-radius: 6px; font-size: 14px; color: var(--gray-9);
+  cursor: pointer; text-align: left; }
+.menu-item:hover:not(:disabled) { background: var(--gray-2); }
+.menu-item:disabled { opacity: .35; cursor: default; }
+.menu-item.danger { color: var(--red); }
+.menu-item svg { width: 16px; height: 16px; flex-shrink: 0; }
 
 /* ── empty state ── */
 .empty { text-align: center; padding: 60px 20px; color: var(--gray-5); }
@@ -130,8 +168,9 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
   max-width: 640px; padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
   max-height: 92vh; overflow-y: auto; }
 .modal-header { display: flex; align-items: center; margin-bottom: 20px; }
-.modal-header h2 { flex: 1; font-size: 18px; font-weight: 600; }
+.modal-header h2 { flex: 1; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.hint { font-size: 13px; color: var(--gray-7); margin-bottom: 12px; }
 
 /* ── form fields ── */
 .field { margin-bottom: 14px; }
@@ -145,14 +184,23 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue);
   box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-file-row { display: flex; align-items: center; gap: 8px; padding: 6px 0;
+  border-bottom: 1px solid var(--gray-3); font-size: 14px; }
+.modal-file-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: none; border: none; padding: 0; text-align: left; font-size: 14px; color: var(--blue); cursor: pointer; }
+.modal-file-row .name.pending { color: var(--gray-9); cursor: default; }
+.modal-file-row .size { color: var(--gray-5); font-size: 12px; }
+#f-file-status { font-size: 13px; color: var(--gray-7); margin-top: 6px; }
+#f-file-btn { margin-top: 8px; }
 
-/* ── list manager ── */
-.list-item-row { display: flex; align-items: center; gap: 8px;
+/* ── list manager / share ── */
+.list-item-row { display: flex; align-items: center; gap: 4px;
   padding: 8px 0; border-bottom: 1px solid var(--gray-3); }
 .list-item-row:last-child { border-bottom: none; }
-.list-item-row span { flex: 1; font-size: 15px; }
+.list-item-row span { flex: 1; min-width: 0; font-size: 15px; overflow-wrap: anywhere; }
+.list-item-row small { color: var(--gray-5); font-size: 12px; }
 .list-add-row { display: flex; gap: 8px; margin-top: 14px; }
-.list-add-row input { flex: 1; padding: 9px 12px; border: 1px solid var(--gray-3);
+.list-add-row input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--gray-3);
   border-radius: var(--radius); font-size: 15px; outline: none; }
 .list-add-row input:focus { border-color: var(--blue); }
 </style>
@@ -183,12 +231,16 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
     </div>
     <div class="list-row">
       <select id="listPicker" aria-label="Select list"></select>
+      <button class="btn" id="shareBtn" title="Share this list" aria-label="Share this list" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </button>
       <button class="btn" id="manageListsBtn" title="Manage lists">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Lists
       </button>
     </div>
-    <div class="toolbar-row">
+    <div class="toolbar-row" id="toolbarRow">
+      <span class="share-info" id="shareInfo"></span>
       <button class="btn btn-sm" id="clearCheckedBtn" style="display:none">Clear checked</button>
       <button class="btn btn-sm btn-danger" id="deleteCheckedBtn" style="display:none">Delete checked</button>
       <button class="btn btn-sm" id="restoreBtn" style="display:none">Restore cleared</button>
@@ -204,6 +256,8 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
     Add item
   </button>
 </div>
+
+<div class="item-menu" id="itemMenu" role="menu"></div>
 
 <!-- Item modal -->
 <div class="modal-backdrop" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle">
@@ -238,9 +292,27 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
         <label for="f-who">Who</label>
         <input id="f-who" type="text" placeholder="Person responsible">
       </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-contact">Contact</label>
+          <input id="f-contact" type="text" maxlength="150" placeholder="Name to call">
+        </div>
+        <div class="field">
+          <label for="f-phone">Phone</label>
+          <input id="f-phone" type="tel" maxlength="40" placeholder="(801) 555-1234">
+        </div>
+      </div>
       <div class="field">
         <label for="f-notes">Notes</label>
         <textarea id="f-notes" rows="3" placeholder="Anything else to remember"></textarea>
+      </div>
+      <div class="field">
+        <label>Photos &amp; files</label>
+        <div id="f-files"></div>
+        <button type="button" class="btn btn-sm" id="f-file-btn">+ Add photo or file</button>
+        <input type="file" id="f-file-input" multiple hidden
+          accept="image/*,.heic,.heif,.pdf,.txt,.rtf,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+        <div id="f-file-status"></div>
       </div>
     </form>
     <div class="modal-footer">
@@ -268,19 +340,49 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
   </div>
 </div>
 
+<!-- Share modal -->
+<div class="modal-backdrop" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="shareModalTitle">Share list</h2>
+      <button class="btn-icon" id="shareModalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="shareError" class="error-msg" style="display:none"></div>
+    <p class="hint" id="shareHint"></p>
+    <div id="shareMembers"><p class="status-msg">Loading…</p></div>
+    <div class="list-add-row" id="shareAddRow" style="display:none">
+      <input id="shareUsername" type="text" placeholder="Their MyDataWorld username" autocapitalize="none" autocomplete="off">
+      <button class="btn btn-primary" id="shareAddBtn">Share</button>
+    </div>
+    <div class="modal-footer" id="shareLeaveRow" style="display:none">
+      <button class="btn btn-danger" id="shareLeaveBtn">Leave this list</button>
+    </div>
+  </div>
+</div>
+
+<script src="mdw-prefs.js?v=1"></script>
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const API_URL = 'https://seniorfamily.org/checklist-api/api.php'; // ← confirm this matches where you upload the api/ folder
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // matches api.php
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const AUTH_KEY = 'checklistAuth';
+const COLLAPSED_KEY = 'checklistCollapsed';
 let auth         = null;   // { token, displayName }
 let allItems     = [];     // items in the currently selected list (cleared ones excluded)
 let clearedCount = 0;      // cleared items in the currently selected list
-let lists        = [];     // [{ id, name }]
+let lists        = [];     // [{ id, name, isOwner, ownerName, shareCount, total, done }]
 let currentListId = null;
 let editingId    = null;
 let addingParentId = null; // set when the item modal is adding a sub-item
+let pendingFiles = [];     // files picked while adding a new item, uploaded after it's saved
+let posInfo      = new Map(); // item id -> { index, count } among its visible siblings
+let shareListId  = null;   // list the share modal is showing
+const collapsedIds = loadCollapsed();
+const fileUrlCache = new Map(); // attachment id -> blob URL
 
 const loginScreen = document.getElementById('loginScreen');
 const loginUsername = document.getElementById('loginUsername');
@@ -289,11 +391,48 @@ const loginBtn = document.getElementById('loginBtn');
 const loginMsg = document.getElementById('loginMsg');
 const appEl = document.getElementById('app');
 const fabEl = document.getElementById('fab');
+const itemListEl = document.getElementById('itemList');
+const menuEl = document.getElementById('itemMenu');
 
-// ── AUTH STORAGE ──────────────────────────────────────────────────────────────
+// ── ICONS ─────────────────────────────────────────────────────────────────────
+// Default 16px; CSS overrides where a smaller/larger icon is wanted.
+const svg = body => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">${body}</svg>`;
+const ICON = {
+  pin:     svg('<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>'),
+  cal:     svg('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'),
+  user:    svg('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
+  contact: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="11" r="2.5"/><path d="M5.5 17a3.5 3.5 0 0 1 7 0"/><line x1="15" y1="10" x2="19" y2="10"/><line x1="15" y1="14" x2="19" y2="14"/>'),
+  phone:   svg('<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>'),
+  sms:     svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+  plus:    svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>'),
+  edit:    svg('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'),
+  more:    svg('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>'),
+  trash:   svg('<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>'),
+  up:      svg('<path d="M12 19V5M5 12l7-7 7 7"/>'),
+  down:    svg('<path d="M12 5v14M19 12l-7 7-7-7"/>'),
+  indent:  svg('<path d="M13 7l5 5-5 5M4 12h14"/>'),
+  outdent: svg('<path d="M11 17l-5-5 5-5M20 12H6"/>'),
+  calAdd:  svg('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/>'),
+  file:    svg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'),
+  share:   svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  copy:    svg('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  leave:   svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'),
+  caret:   svg('<path d="M6 9l6 6 6-6"/>'),
+  x:       svg('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'),
+};
+
+// ── LOCAL STORAGE ─────────────────────────────────────────────────────────────
 function loadAuth() { try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; } }
-function saveAuth(a) { localStorage.setItem(AUTH_KEY, JSON.stringify(a)); }
-function clearAuthStorage() { localStorage.removeItem(AUTH_KEY); }
+function saveAuth(a) { try { localStorage.setItem(AUTH_KEY, JSON.stringify(a)); } catch (_) {} }
+function clearAuthStorage() { try { localStorage.removeItem(AUTH_KEY); } catch (_) {} }
+
+// Collapsed items are remembered per device (item ids are unique across lists).
+function loadCollapsed() {
+  try { return new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY)) || []); } catch { return new Set(); }
+}
+function saveCollapsed() {
+  try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedIds])); } catch (_) {}
+}
 
 function authHeaders() {
   const headers = { 'Content-Type': 'application/json' };
@@ -318,8 +457,62 @@ async function api(action, { method = 'GET', body = null, query = {} } = {}) {
   return data;
 }
 
+async function uploadFile(itemId, file) {
+  if (file.size > MAX_UPLOAD_BYTES) throw new Error('Files can be up to 10 MB');
+  const form = new FormData();
+  form.append('itemId', String(itemId));
+  form.append('file', file);
+  const res = await fetch(`${API_URL}?action=uploadAttachment`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${auth.token}` }, // no Content-Type: the browser sets the multipart boundary
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    const err = new Error(data.error || `HTTP ${res.status}`);
+    err.noAccess = !!data.noAccess;
+    throw err;
+  }
+  return data.attachment;
+}
+
+// Files need the bearer token, so they're fetched and shown as blob URLs.
+async function attachmentUrl(id) {
+  if (fileUrlCache.has(id)) return fileUrlCache.get(id);
+  const res = await fetch(`${API_URL}?action=attachment&id=${id}`, { headers: { Authorization: `Bearer ${auth.token}` } });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  fileUrlCache.set(id, url);
+  return url;
+}
+
+async function openAttachment(att) {
+  const win = window.open('', '_blank'); // opened inside the click so it isn't popup-blocked
+  try {
+    const url = await attachmentUrl(att.id);
+    if (win) {
+      win.location.href = url;
+    } else {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = att.fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  } catch (e) {
+    if (win) win.close();
+    alert(`Couldn't open ${att.fileName}: ${e.message}`);
+  }
+}
+
+// Logged out / not granted the app -- as opposed to "not authorized to
+// access this list" (e.g. someone stopped sharing it), which isn't.
 function isSessionError(e) {
-  return e.noAccess || /session|authoriz/i.test(e.message);
+  return e.noAccess || /session|authorization header/i.test(e.message);
 }
 
 function handleApiError(e, fallbackPrefix = 'Something went wrong') {
@@ -338,6 +531,7 @@ function showLogin(message) {
   auth = null;
   appEl.style.display = 'none';
   fabEl.style.display = 'none';
+  closeAllOverlays();
   loginScreen.style.display = 'flex';
   loginMsg.innerHTML = message ? `<div class="error-msg">${esc(message)}</div>` : '';
 }
@@ -378,27 +572,35 @@ async function logout() {
 
 // ── BOOTSTRAP / LISTS ─────────────────────────────────────────────────────────
 async function bootstrapApp() {
+  MdwPrefs.init({ appKey: 'master-checklist', getToken: () => (auth ? auth.token : '') });
+  MdwPrefs.load(); // calendar choice; falls back to "ask" if the Hub is unreachable
   try {
-    const data = await api('listLists');
-    lists = data.lists;
-    if (!currentListId || !lists.find(l => l.id === currentListId)) {
-      currentListId = lists[0]?.id ?? null;
-    }
-    renderListPicker();
+    await loadLists();
     await loadItems();
   } catch (e) {
     handleApiError(e, "Couldn't load your lists");
   }
 }
 
-async function loadItems() {
+async function loadLists() {
+  const data = await api('listLists');
+  lists = data.lists;
+  if (!currentListId || !lists.find(l => l.id === currentListId)) {
+    currentListId = lists[0]?.id ?? null;
+  }
+  renderListPicker();
+}
+
+// silent: no "Loading…" flash, and non-session errors are ignored (used for
+// background refreshes, e.g. coming back to the app to see others' changes).
+async function loadItems(silent = false) {
   if (!currentListId) {
     allItems = [];
     clearedCount = 0;
     render();
     return;
   }
-  showLoading();
+  if (!silent) showLoading();
   try {
     const data = await api('listItems', { query: { listId: currentListId } });
     allItems = data.items;
@@ -407,27 +609,53 @@ async function loadItems() {
   } catch (e) {
     if (isSessionError(e)) {
       handleApiError(e);
-    } else {
+    } else if (!silent) {
       showError(e.message);
     }
   }
 }
 
+async function refreshQuietly() {
+  try {
+    await loadLists();
+    await loadItems(true);
+  } catch (e) {
+    if (isSessionError(e)) handleApiError(e);
+  }
+}
+
+function currentList() {
+  return lists.find(l => l.id === currentListId) || null;
+}
+
+function listLabel(l) {
+  const owner = l.isOwner ? '' : ` · ${l.ownerName}'s`;
+  const progress = l.total ? ` (${l.done}/${l.total})` : '';
+  return `${l.name}${owner}${progress}`;
+}
+
 function renderListPicker() {
   const sel = document.getElementById('listPicker');
   sel.innerHTML = lists.length
-    ? lists.map(l => `<option value="${l.id}" ${l.id === currentListId ? 'selected' : ''}>${esc(l.name)}</option>`).join('')
+    ? lists.map(l => `<option value="${l.id}" ${l.id === currentListId ? 'selected' : ''}>${esc(listLabel(l))}</option>`).join('')
     : '<option value="">No lists yet</option>';
+
+  const list = currentList();
+  document.getElementById('shareBtn').style.display = list ? '' : 'none';
+  document.getElementById('shareInfo').textContent = !list ? ''
+    : !list.isOwner ? `Shared by ${list.ownerName}`
+    : list.shareCount ? `Shared with ${list.shareCount} ${list.shareCount === 1 ? 'person' : 'people'}` : '';
 }
 
 // ── ITEM MUTATIONS ────────────────────────────────────────────────────────────
+// Returns the item's id (new or existing). The caller reloads.
 async function saveItem(itemData) {
   if (editingId) {
     await api('updateItem', { method: 'POST', body: { id: editingId, ...itemData } });
-  } else {
-    await api('addItem', { method: 'POST', body: { listId: currentListId, parentId: addingParentId, ...itemData } });
+    return Number(editingId);
   }
-  await loadItems();
+  const res = await api('addItem', { method: 'POST', body: { listId: currentListId, parentId: addingParentId, ...itemData } });
+  return res.id;
 }
 
 async function toggleComplete(id, current) {
@@ -445,30 +673,21 @@ async function toggleComplete(id, current) {
 }
 
 async function removeItem(id) {
-  if (!confirm('Delete this item? Any sub-items under it will be deleted too.')) return;
+  if (!confirm('Delete this item? Any sub-items and files under it will be deleted too.')) return;
   try {
     await api('deleteItem', { method: 'POST', body: { id } });
-    await loadItems();
+    await loadItems(true);
   } catch (e) {
     handleApiError(e, 'Failed to delete');
   }
 }
 
-async function handleIndent(id) {
+async function itemAction(action, id, extra = {}, errorPrefix = 'Something went wrong') {
   try {
-    await api('indentItem', { method: 'POST', body: { id } });
-    await loadItems();
+    await api(action, { method: 'POST', body: { id, ...extra } });
+    await loadItems(true);
   } catch (e) {
-    handleApiError(e, "Couldn't indent");
-  }
-}
-
-async function handleOutdent(id) {
-  try {
-    await api('outdentItem', { method: 'POST', body: { id } });
-    await loadItems();
-  } catch (e) {
-    handleApiError(e, "Couldn't outdent");
+    handleApiError(e, errorPrefix);
   }
 }
 
@@ -487,7 +706,7 @@ async function handleClearChecked() {
 async function handleDeleteChecked() {
   const checkedCount = allItems.filter(i => i.complete).length;
   if (!checkedCount) return;
-  if (!confirm(`Permanently delete ${checkedCount} checked item${checkedCount !== 1 ? 's' : ''} (and any sub-items under them)? This cannot be undone.`)) return;
+  if (!confirm(`Permanently delete ${checkedCount} checked item${checkedCount !== 1 ? 's' : ''} (and any sub-items and files under them)? This cannot be undone.`)) return;
   try {
     await api('deleteChecked', { method: 'POST', body: { listId: currentListId } });
     await loadItems();
@@ -505,22 +724,39 @@ async function handleRestoreCleared() {
   }
 }
 
+function addItemToCalendar(item) {
+  const notes = [
+    item.notes,
+    [item.contactName, item.phoneNumber].filter(Boolean).join(' · '),
+    item.who ? `Who: ${item.who}` : '',
+  ].filter(Boolean).join('\n');
+  // Called straight from the click so a window.open inside counts as a user gesture.
+  MdwPrefs.addToCalendar({
+    uid: `checklist-item-${item.id}@master-checklist`,
+    title: item.what,
+    date: item.whenDate,
+    startTime: item.whenTime || null,
+    endTime: null,
+    location: item.where || '',
+    notes,
+    reminderMinutes: null,
+  });
+}
+
 // ── LIST MUTATIONS ────────────────────────────────────────────────────────────
 async function handleAddList() {
   const input = document.getElementById('newListName');
   const name = input.value.trim();
   if (!name) return;
-  if (lists.some(l => l.name === name)) {
+  if (lists.some(l => l.isOwner && l.name === name)) {
     showListError('A list with that name already exists.');
     return;
   }
   try {
     const res = await api('addList', { method: 'POST', body: { name } });
-    lists.push({ id: res.id, name: res.name });
-    lists.sort((a, b) => a.name.localeCompare(b.name));
     currentListId = res.id;
     input.value = '';
-    renderListPicker();
+    await loadLists();
     renderListModal();
     await loadItems();
   } catch (e) {
@@ -531,7 +767,7 @@ async function handleAddList() {
 async function handleRenameList(id, oldName) {
   const newName = prompt(`Rename "${oldName}" to:`, oldName);
   if (!newName || newName === oldName) return;
-  if (lists.some(l => l.name === newName)) {
+  if (lists.some(l => l.isOwner && l.name === newName)) {
     showListError('That name already exists.');
     return;
   }
@@ -552,7 +788,9 @@ async function handleDeleteList(id, name) {
   const msg = knownCount !== null
     ? (knownCount ? `Delete "${name}" and all ${knownCount} item${knownCount !== 1 ? 's' : ''} in it?` : `Delete the empty list "${name}"?`)
     : `Delete "${name}"? Any items in it will be deleted too.`;
-  if (!confirm(msg)) return;
+  const list = lists.find(l => l.id === id);
+  const sharedNote = list && list.shareCount ? ' It will also disappear for everyone it\'s shared with.' : '';
+  if (!confirm(msg + sharedNote)) return;
   try {
     await api('deleteList', { method: 'POST', body: { id } });
     lists = lists.filter(l => l.id !== id);
@@ -562,6 +800,35 @@ async function handleDeleteList(id, name) {
     await loadItems();
   } catch (e) {
     showListError('Delete failed: ' + e.message);
+  }
+}
+
+async function handleDuplicateList(id, name) {
+  const newName = prompt(`Name for the copy of "${name}" (items are copied unchecked):`, `${name} (copy)`);
+  if (!newName || !newName.trim()) return;
+  try {
+    const res = await api('duplicateList', { method: 'POST', body: { id, name: newName.trim() } });
+    currentListId = res.id;
+    await loadLists();
+    renderListModal();
+    await loadItems();
+  } catch (e) {
+    showListError('Copy failed: ' + e.message);
+  }
+}
+
+async function handleLeaveList(id, name) {
+  if (!confirm(`Leave "${name}"? It will no longer show in your lists. The owner can share it with you again.`)) return;
+  try {
+    await api('unshareList', { method: 'POST', body: { listId: id } });
+    if (currentListId === id) currentListId = null;
+    await loadLists();
+    renderListModal();
+    await loadItems();
+    return true;
+  } catch (e) {
+    showListError('Leave failed: ' + e.message);
+    return false;
   }
 }
 
@@ -581,14 +848,56 @@ function formatWhenDisplay(dateStr, timeStr) {
   return parts.join(' · ');
 }
 
+// 'overdue' | 'today' | '' for an unchecked item's date (local time).
+function dueState(item) {
+  if (item.complete || !item.whenDate) return '';
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  if (item.whenDate < today) return 'overdue';
+  if (item.whenDate > today) return '';
+  const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return item.whenTime && item.whenTime < nowTime ? 'overdue' : 'today';
+}
+
 function looksLikeAddress(where) {
   if (!where) return false;
   return /\d/.test(where) || /\b(st|ave|blvd|rd|dr|ln|way|ct|pl|hwy)\b/i.test(where);
 }
 
+function dialable(phone) {
+  return String(phone || '').replace(/[^\d+]/g, '');
+}
+
+function isImage(att) {
+  return /^image\//.test(att.fileType);
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function findAttachment(id) {
+  for (const item of allItems) {
+    const att = item.attachments.find(a => a.id === id);
+    if (att) return att;
+  }
+  return null;
+}
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render() {
-  const container = document.getElementById('itemList');
+  const container = itemListEl;
+
+  // Keep the picker's done/total in step with what's on screen.
+  const list = currentList();
+  if (list) {
+    list.total = allItems.length;
+    list.done = allItems.filter(i => i.complete).length;
+  }
+  renderListPicker();
 
   const hasChecked = allItems.some(i => i.complete);
   document.getElementById('clearCheckedBtn').style.display = hasChecked ? '' : 'none';
@@ -605,10 +914,9 @@ function render() {
   }
 
   if (!allItems.length) {
-    const listName = lists.find(l => l.id === currentListId)?.name || '';
     container.innerHTML = `<div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
-      <p>No items in "${esc(listName)}" yet.</p>
+      <p>No items in "${esc(list ? list.name : '')}" yet.</p>
     </div>`;
     return;
   }
@@ -620,44 +928,37 @@ function render() {
     if (!byParent.has(key)) byParent.set(key, []);
     byParent.get(key).push(i);
   });
-  byParent.forEach(arr => arr.sort((a, b) => a.id - b.id));
+  posInfo = new Map();
+  byParent.forEach(arr => {
+    arr.sort((a, b) => (a.sortOrder - b.sortOrder) || (a.id - b.id));
+    arr.forEach((it, index) => posInfo.set(it.id, { index, count: arr.length }));
+  });
 
   function renderLevel(parentKey) {
     const kids = byParent.get(parentKey) || [];
-    return kids.map(item => `
+    // Only levels where something can collapse reserve the toggle column,
+    // so flat lists keep their full width.
+    const levelHasToggle = kids.some(k => byParent.has(k.id));
+    return kids.map(item => {
+      const childCount = (byParent.get(item.id) || []).length;
+      const collapsed = childCount > 0 && collapsedIds.has(item.id);
+      return `
       <div class="item-node">
-        ${itemHTML(item)}
-        <div class="item-children">${renderLevel(item.id)}</div>
-      </div>
-    `).join('');
+        ${itemHTML(item, childCount, collapsed, levelHasToggle)}
+        ${childCount && !collapsed ? `<div class="item-children">${renderLevel(item.id)}</div>` : ''}
+      </div>`;
+    }).join('');
   }
 
   container.innerHTML = renderLevel(0);
-
-  container.querySelectorAll('.item-check input').forEach(cb => {
-    cb.addEventListener('change', () => toggleComplete(cb.dataset.id, cb.dataset.complete === 'true'));
-  });
-  container.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => openItemModal(btn.dataset.id));
-  });
-  container.querySelectorAll('.del-btn').forEach(btn => {
-    btn.addEventListener('click', () => removeItem(btn.dataset.id));
-  });
-  container.querySelectorAll('.add-sub-btn').forEach(btn => {
-    btn.addEventListener('click', () => openItemModal(null, Number(btn.dataset.id)));
-  });
-  container.querySelectorAll('.indent-btn').forEach(btn => {
-    btn.addEventListener('click', () => handleIndent(btn.dataset.id));
-  });
-  container.querySelectorAll('.outdent-btn').forEach(btn => {
-    btn.addEventListener('click', () => handleOutdent(btn.dataset.id));
-  });
+  loadThumbnails();
 }
 
-function itemHTML(item) {
+function itemHTML(item, childCount, collapsed, levelHasToggle) {
   const id      = String(item.id);
   const done    = item.complete;
   const when    = formatWhenDisplay(item.whenDate, item.whenTime);
+  const due     = dueState(item);
   const isAddr  = looksLikeAddress(item.where);
   const mapsUrl = item.where
     ? 'https://maps.google.com/maps?q=' + encodeURIComponent(item.where)
@@ -666,30 +967,45 @@ function itemHTML(item) {
   let metaHtml = '';
   if (item.where) {
     if (isAddr) {
-      metaHtml += `<a class="meta map-link" href="${mapsUrl}" target="_blank" rel="noopener" title="Open in Maps">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        ${esc(item.where)}</a>`;
+      metaHtml += `<a class="meta map-link" href="${mapsUrl}" target="_blank" rel="noopener" title="Open in Maps">${ICON.pin}${esc(item.where)}</a>`;
     } else {
-      metaHtml += `<span class="meta">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        ${esc(item.where)}</span>`;
+      metaHtml += `<span class="meta">${ICON.pin}${esc(item.where)}</span>`;
     }
   }
   if (when) {
-    metaHtml += `<span class="meta">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      ${esc(when)}</span>`;
+    const dueLabel = due === 'overdue' ? ' (overdue)' : due === 'today' ? ' (today)' : '';
+    metaHtml += `<span class="meta${due ? ' ' + due : ''}">${ICON.cal}${esc(when + dueLabel)}</span>`;
   }
   if (item.who) {
-    metaHtml += `<span class="meta">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      ${esc(item.who)}</span>`;
+    metaHtml += `<span class="meta">${ICON.user}${esc(item.who)}</span>`;
+  }
+  if (item.contactName || item.phoneNumber) {
+    const label = item.contactName && item.phoneNumber ? `${item.contactName} · ${item.phoneNumber}`
+      : (item.contactName || item.phoneNumber);
+    metaHtml += `<span class="meta">${ICON.contact}${esc(label)}</span>`;
+  }
+  if (item.phoneNumber && dialable(item.phoneNumber)) {
+    const num = esc(dialable(item.phoneNumber));
+    const who = esc(item.contactName || item.phoneNumber);
+    metaHtml += `<a class="meta chip" href="tel:${num}" aria-label="Call ${who}">${ICON.phone}Call</a>`;
+    metaHtml += `<a class="meta chip" href="sms:${num}" aria-label="Text ${who}">${ICON.sms}Text</a>`;
+  }
+  if (collapsed) {
+    metaHtml += `<span class="meta sub-hint">${childCount} sub-item${childCount !== 1 ? 's' : ''} hidden</span>`;
   }
 
-  const canOutdent = item.parentId !== null;
-  const canAddSub = item.depth < 2; // grandchild is the deepest level
+  const filesHtml = item.attachments.length ? `<div class="item-files">${item.attachments.map(att => isImage(att)
+    ? `<button type="button" class="thumb" data-act="open-file" data-att="${att.id}" title="${esc(att.fileName)}" aria-label="Open ${esc(att.fileName)}"><img data-thumb="${att.id}" alt=""></button>`
+    : `<button type="button" class="file-chip" data-act="open-file" data-att="${att.id}" title="${esc(att.fileName)}">${ICON.file}<span>${esc(att.fileName)}</span></button>`
+  ).join('')}</div>` : '';
 
-  return `<div class="item${done ? ' complete' : ''}">
+  const canAddSub = item.depth < 2; // grandchild is the deepest level
+  const toggle = childCount
+    ? `<button type="button" class="item-toggle${collapsed ? ' collapsed' : ''}" data-act="toggle" data-id="${esc(id)}" aria-expanded="${!collapsed}" aria-label="${collapsed ? 'Show' : 'Hide'} sub-items" title="${collapsed ? 'Show' : 'Hide'} sub-items">${ICON.caret}</button>`
+    : levelHasToggle ? '<span class="item-toggle-spacer"></span>' : '';
+
+  return `<div class="item${done ? ' complete' : ''}${levelHasToggle ? ' has-toggle' : ''}">
+    ${toggle}
     <div class="item-check">
       <input type="checkbox" ${done ? 'checked' : ''} data-id="${esc(id)}" data-complete="${done}" aria-label="Mark complete">
     </div>
@@ -697,59 +1013,121 @@ function itemHTML(item) {
       <div class="item-what">${esc(item.what)}</div>
       ${metaHtml ? `<div class="item-meta">${metaHtml}</div>` : ''}
       ${item.notes ? `<div class="item-notes">${esc(item.notes)}</div>` : ''}
+      ${filesHtml}
     </div>
     <div class="item-actions">
-      ${canAddSub ? `<button class="btn-icon add-sub-btn" data-id="${esc(id)}" aria-label="Add sub-item under ${esc(item.what)}" title="Add sub-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>` : ''}
-      <button class="btn-icon outdent-btn" data-id="${esc(id)}" aria-label="Outdent" title="Outdent" ${canOutdent ? '' : 'disabled'}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 17l-5-5 5-5M20 12H6"/></svg>
-      </button>
-      <button class="btn-icon indent-btn" data-id="${esc(id)}" aria-label="Indent" title="Indent">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M13 7l5 5-5 5M4 12h14"/></svg>
-      </button>
-      <button class="btn-icon edit-btn" data-id="${esc(id)}" aria-label="Edit">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
-      <button class="btn-icon del-btn" data-id="${esc(id)}" aria-label="Delete" style="color:var(--gray-5)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-      </button>
+      ${canAddSub ? `<button class="btn-icon" data-act="add-sub" data-id="${esc(id)}" aria-label="Add sub-item under ${esc(item.what)}" title="Add sub-item">${ICON.plus}</button>` : ''}
+      <button class="btn-icon" data-act="edit" data-id="${esc(id)}" aria-label="Edit" title="Edit">${ICON.edit}</button>
+      <button class="btn-icon" data-act="menu" data-id="${esc(id)}" aria-label="More actions" title="More" aria-haspopup="menu">${ICON.more}</button>
     </div>
   </div>`;
 }
 
+function loadThumbnails() {
+  itemListEl.querySelectorAll('img[data-thumb]').forEach(async img => {
+    const id = Number(img.dataset.thumb);
+    // Formats the browser can't draw (e.g. HEIC outside Safari) fall back to an icon.
+    img.addEventListener('error', () => { img.parentElement.innerHTML = ICON.file; }, { once: true });
+    try {
+      img.src = await attachmentUrl(id);
+    } catch (_) {
+      img.parentElement.innerHTML = ICON.file;
+    }
+  });
+}
+
 function showLoading() {
-  document.getElementById('itemList').innerHTML = '<p class="status-msg">Loading…</p>';
+  itemListEl.innerHTML = '<p class="status-msg">Loading…</p>';
 }
 
 function showError(msg) {
-  document.getElementById('itemList').innerHTML =
-    `<p class="status-msg" style="color:var(--red)">Error: ${esc(msg)}</p>`;
+  itemListEl.innerHTML = `<p class="status-msg" style="color:var(--red)">Error: ${esc(msg)}</p>`;
+}
+
+// ── ITEM ⋯ MENU ───────────────────────────────────────────────────────────────
+let menuItemId = null;
+
+function openItemMenu(id, anchor) {
+  const item = allItems.find(i => i.id === id);
+  const pos = posInfo.get(id);
+  if (!item || !pos) return;
+  menuItemId = id;
+
+  const entries = [
+    { act: 'up',       icon: ICON.up,      label: 'Move up',   disabled: pos.index === 0 },
+    { act: 'down',     icon: ICON.down,    label: 'Move down', disabled: pos.index === pos.count - 1 },
+    { act: 'indent',   icon: ICON.indent,  label: 'Indent under item above', disabled: pos.index === 0 || item.depth >= 2 },
+    { act: 'outdent',  icon: ICON.outdent, label: 'Outdent',   disabled: item.parentId === null },
+    item.whenDate ? { act: 'calendar', icon: ICON.calAdd, label: 'Add to calendar' } : null,
+    { act: 'delete',   icon: ICON.trash,   label: 'Delete',    danger: true },
+  ].filter(Boolean);
+
+  menuEl.innerHTML = entries.map(e =>
+    `<button type="button" role="menuitem" class="menu-item${e.danger ? ' danger' : ''}" data-menu-act="${e.act}" ${e.disabled ? 'disabled' : ''}>${e.icon}<span>${e.label}</span></button>`
+  ).join('');
+
+  menuEl.style.visibility = 'hidden';
+  menuEl.style.display = 'block';
+  const r = anchor.getBoundingClientRect();
+  const mh = menuEl.offsetHeight;
+  const mw = menuEl.offsetWidth;
+  let top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  const left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
+  menuEl.style.top = `${top}px`;
+  menuEl.style.left = `${left}px`;
+  menuEl.style.visibility = '';
+  const first = menuEl.querySelector('.menu-item:not(:disabled)');
+  if (first) first.focus();
+}
+
+function closeItemMenu() {
+  menuEl.style.display = 'none';
+  menuItemId = null;
+}
+
+function handleMenuAction(act) {
+  const id = menuItemId;
+  const item = allItems.find(i => i.id === id);
+  closeItemMenu();
+  if (!item) return;
+  switch (act) {
+    case 'up':       itemAction('moveItem', id, { direction: 'up' }, "Couldn't move"); break;
+    case 'down':     itemAction('moveItem', id, { direction: 'down' }, "Couldn't move"); break;
+    case 'indent':   itemAction('indentItem', id, {}, "Couldn't indent"); break;
+    case 'outdent':  itemAction('outdentItem', id, {}, "Couldn't outdent"); break;
+    case 'calendar': addItemToCalendar(item); break;
+    case 'delete':   removeItem(id); break;
+  }
 }
 
 // ── ITEM MODAL ────────────────────────────────────────────────────────────────
 function openItemModal(id = null, parentId = null) {
   editingId = id;
   addingParentId = id ? null : parentId;
+  pendingFiles = [];
   const modal = document.getElementById('itemModal');
   const parent = addingParentId ? allItems.find(i => i.id === addingParentId) : null;
   document.getElementById('itemModalTitle').textContent = id ? 'Edit item'
     : parent ? `Add sub-item under "${parent.what}"` : 'Add item';
   document.getElementById('itemError').style.display = 'none';
+  document.getElementById('f-file-status').textContent = '';
 
+  document.getElementById('itemForm').reset();
   if (id) {
     const item = allItems.find(i => i.id === Number(id));
     if (item) {
-      document.getElementById('f-what').value  = item.what  || '';
-      document.getElementById('f-where').value = item.where || '';
-      document.getElementById('f-who').value   = item.who   || '';
-      document.getElementById('f-date').value  = item.whenDate || '';
-      document.getElementById('f-time').value  = item.whenTime || '';
-      document.getElementById('f-notes').value = item.notes || '';
+      document.getElementById('f-what').value    = item.what  || '';
+      document.getElementById('f-where').value   = item.where || '';
+      document.getElementById('f-who').value     = item.who   || '';
+      document.getElementById('f-date').value    = item.whenDate || '';
+      document.getElementById('f-time').value    = item.whenTime || '';
+      document.getElementById('f-contact').value = item.contactName || '';
+      document.getElementById('f-phone').value   = item.phoneNumber || '';
+      document.getElementById('f-notes').value   = item.notes || '';
     }
-  } else {
-    document.getElementById('itemForm').reset();
   }
+  renderModalFiles();
 
   modal.classList.add('open');
   document.getElementById('f-what').focus();
@@ -759,6 +1137,68 @@ function closeItemModal() {
   document.getElementById('itemModal').classList.remove('open');
   editingId = null;
   addingParentId = null;
+  pendingFiles = [];
+}
+
+function renderModalFiles() {
+  const box = document.getElementById('f-files');
+  if (editingId) {
+    const item = allItems.find(i => i.id === Number(editingId));
+    const atts = item ? item.attachments : [];
+    box.innerHTML = atts.map(att => `
+      <div class="modal-file-row">
+        <button type="button" class="name" data-open-att="${att.id}" title="Open">${esc(att.fileName)}</button>
+        <span class="size">${formatSize(att.fileSize)}</span>
+        <button type="button" class="btn-icon" data-del-att="${att.id}" aria-label="Remove ${esc(att.fileName)}" title="Remove">${ICON.x}</button>
+      </div>`).join('');
+  } else {
+    box.innerHTML = pendingFiles.map((f, i) => `
+      <div class="modal-file-row">
+        <span class="name pending">${esc(f.name)}</span>
+        <span class="size">${formatSize(f.size)}</span>
+        <button type="button" class="btn-icon" data-del-pending="${i}" aria-label="Remove ${esc(f.name)}" title="Remove">${ICON.x}</button>
+      </div>`).join('');
+  }
+}
+
+async function handleFilesPicked(files) {
+  const status = document.getElementById('f-file-status');
+  const tooBig = files.filter(f => f.size > MAX_UPLOAD_BYTES);
+  files = files.filter(f => f.size <= MAX_UPLOAD_BYTES);
+  status.textContent = tooBig.length ? `Skipped (over 10 MB): ${tooBig.map(f => f.name).join(', ')}` : '';
+
+  if (!editingId) {
+    // New item: hold the files until Save creates it.
+    pendingFiles.push(...files);
+    renderModalFiles();
+    return;
+  }
+
+  const itemId = Number(editingId);
+  const failures = [];
+  for (const f of files) {
+    status.textContent = `Uploading ${f.name}…`;
+    try {
+      await uploadFile(itemId, f);
+    } catch (e) {
+      failures.push(`${f.name}: ${e.message}`);
+    }
+  }
+  status.textContent = failures.length ? `Couldn't upload — ${failures.join('; ')}` : '';
+  await loadItems(true);
+  if (Number(editingId) === itemId) renderModalFiles();
+}
+
+async function removeAttachment(attId) {
+  const att = findAttachment(attId);
+  if (!confirm(`Remove ${att ? att.fileName : 'this file'}?`)) return;
+  try {
+    await api('deleteAttachment', { method: 'POST', body: { id: attId } });
+    await loadItems(true);
+    renderModalFiles();
+  } catch (e) {
+    handleApiError(e, "Couldn't remove the file");
+  }
 }
 
 async function submitItemForm() {
@@ -776,15 +1216,30 @@ async function submitItemForm() {
   saveBtn.textContent = 'Saving…';
 
   try {
-    await saveItem({
+    const itemId = await saveItem({
       what,
-      where:    document.getElementById('f-where').value.trim(),
-      whenDate: document.getElementById('f-date').value,
-      whenTime: document.getElementById('f-time').value,
-      who:      document.getElementById('f-who').value.trim(),
-      notes:    document.getElementById('f-notes').value.trim(),
+      where:       document.getElementById('f-where').value.trim(),
+      whenDate:    document.getElementById('f-date').value,
+      whenTime:    document.getElementById('f-time').value,
+      who:         document.getElementById('f-who').value.trim(),
+      contactName: document.getElementById('f-contact').value.trim(),
+      phoneNumber: document.getElementById('f-phone').value.trim(),
+      notes:       document.getElementById('f-notes').value.trim(),
     });
+
+    const failures = [];
+    for (const f of pendingFiles) {
+      saveBtn.textContent = `Uploading ${f.name}…`;
+      try {
+        await uploadFile(itemId, f);
+      } catch (e) {
+        failures.push(`${f.name}: ${e.message}`);
+      }
+    }
+
     closeItemModal();
+    await loadItems(true);
+    if (failures.length) alert(`The item was saved, but some files didn't upload:\n${failures.join('\n')}`);
   } catch (e) {
     const err = document.getElementById('itemError');
     err.textContent = 'Save failed: ' + e.message;
@@ -813,29 +1268,127 @@ function renderListModal() {
     container.innerHTML = '<p style="color:var(--gray-5);font-size:14px;">No lists yet.</p>';
     return;
   }
-  container.innerHTML = lists.map(l => `
+  container.innerHTML = lists.map(l => {
+    const attrs = `data-id="${l.id}" data-name="${esc(l.name)}"`;
+    const sub = !l.isOwner ? `<small> · shared by ${esc(l.ownerName)}</small>`
+      : l.shareCount ? `<small> · shared with ${l.shareCount}</small>` : '';
+    return `
     <div class="list-item-row">
-      <span>${esc(l.name)}</span>
-      <button class="btn-icon rename-list-btn" data-id="${l.id}" data-name="${esc(l.name)}" aria-label="Rename ${esc(l.name)}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
-      <button class="btn-icon del-list-btn" style="color:var(--gray-5)" data-id="${l.id}" data-name="${esc(l.name)}" aria-label="Delete ${esc(l.name)}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-      </button>
-    </div>`).join('');
-
-  container.querySelectorAll('.rename-list-btn').forEach(btn => {
-    btn.addEventListener('click', () => handleRenameList(Number(btn.dataset.id), btn.dataset.name));
-  });
-  container.querySelectorAll('.del-list-btn').forEach(btn => {
-    btn.addEventListener('click', () => handleDeleteList(Number(btn.dataset.id), btn.dataset.name));
-  });
+      <span>${esc(l.name)}${sub}</span>
+      ${l.isOwner ? `<button class="btn-icon" data-list-act="share" ${attrs} aria-label="Share ${esc(l.name)}" title="Share">${ICON.share}</button>` : ''}
+      <button class="btn-icon" data-list-act="copy" ${attrs} aria-label="Duplicate ${esc(l.name)}" title="Duplicate">${ICON.copy}</button>
+      ${l.isOwner ? `
+      <button class="btn-icon" data-list-act="rename" ${attrs} aria-label="Rename ${esc(l.name)}" title="Rename">${ICON.edit}</button>
+      <button class="btn-icon" data-list-act="delete" ${attrs} aria-label="Delete ${esc(l.name)}" title="Delete">${ICON.trash}</button>`
+      : `<button class="btn-icon" data-list-act="leave" ${attrs} aria-label="Leave ${esc(l.name)}" title="Leave list">${ICON.leave}</button>`}
+    </div>`;
+  }).join('');
 }
 
 function showListError(msg) {
   const err = document.getElementById('listError');
   err.textContent = msg;
   err.style.display = 'block';
+}
+
+// ── SHARE MODAL ───────────────────────────────────────────────────────────────
+async function openShareModal(listId) {
+  shareListId = listId;
+  const list = lists.find(l => l.id === listId);
+  document.getElementById('shareModalTitle').textContent = list ? `Share "${list.name}"` : 'Share list';
+  document.getElementById('shareError').style.display = 'none';
+  document.getElementById('shareUsername').value = '';
+  document.getElementById('shareMembers').innerHTML = '<p class="status-msg">Loading…</p>';
+  document.getElementById('shareHint').textContent = '';
+  document.getElementById('shareAddRow').style.display = 'none';
+  document.getElementById('shareLeaveRow').style.display = 'none';
+  document.getElementById('shareModal').classList.add('open');
+  await loadShares();
+}
+
+async function loadShares() {
+  try {
+    const data = await api('listShares', { query: { listId: shareListId } });
+    renderShares(data);
+  } catch (e) {
+    if (isSessionError(e)) {
+      handleApiError(e);
+    } else {
+      showShareError(e.message);
+    }
+  }
+}
+
+function renderShares(data) {
+  document.getElementById('shareHint').textContent = data.isOwner
+    ? 'People you share with can see, add, edit and check off items, and add files. Only you can rename, delete or share the list.'
+    : `${data.owner ? data.owner.displayName : 'The owner'} shared this list with you. You can edit everything in it.`;
+
+  const rows = [];
+  if (data.owner) {
+    rows.push(`<div class="list-item-row"><span>${esc(data.owner.displayName)}${data.owner.userId === data.me ? ' (you)' : ''} <small>· owner</small></span></div>`);
+  }
+  data.members.forEach(m => {
+    const removable = data.isOwner;
+    rows.push(`<div class="list-item-row">
+      <span>${esc(m.displayName)}${m.userId === data.me ? ' (you)' : ''} <small>· ${esc(m.username)}</small></span>
+      ${removable ? `<button class="btn-icon" data-unshare="${m.userId}" data-name="${esc(m.displayName)}" aria-label="Stop sharing with ${esc(m.displayName)}" title="Stop sharing">${ICON.x}</button>` : ''}
+    </div>`);
+  });
+  if (data.isOwner && !data.members.length) {
+    rows.push('<p class="hint" style="margin:8px 0 0">Not shared with anyone yet.</p>');
+  }
+  document.getElementById('shareMembers').innerHTML = rows.join('');
+  document.getElementById('shareAddRow').style.display = data.isOwner ? '' : 'none';
+  document.getElementById('shareLeaveRow').style.display = data.isOwner ? 'none' : '';
+}
+
+async function handleAddShare() {
+  const input = document.getElementById('shareUsername');
+  const username = input.value.trim();
+  if (!username) return;
+  document.getElementById('shareError').style.display = 'none';
+  try {
+    await api('shareList', { method: 'POST', body: { listId: shareListId, username } });
+    input.value = '';
+    await loadShares();
+    await loadLists();
+  } catch (e) {
+    showShareError(e.message);
+  }
+}
+
+async function handleUnshare(userId, name) {
+  if (!confirm(`Stop sharing with ${name}? They'll no longer see this list.`)) return;
+  try {
+    await api('unshareList', { method: 'POST', body: { listId: shareListId, userId } });
+    await loadShares();
+    await loadLists();
+  } catch (e) {
+    showShareError(e.message);
+  }
+}
+
+function showShareError(msg) {
+  const err = document.getElementById('shareError');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').classList.remove('open');
+  shareListId = null;
+}
+
+function closeAllOverlays() {
+  closeItemMenu();
+  closeItemModal();
+  closeListModal();
+  closeShareModal();
+}
+
+function anyModalOpen() {
+  return !!document.querySelector('.modal-backdrop.open');
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
@@ -853,24 +1406,118 @@ document.getElementById('listPicker').addEventListener('change', e => {
   loadItems();
 });
 document.getElementById('manageListsBtn').addEventListener('click', openListModal);
+document.getElementById('shareBtn').addEventListener('click', () => { if (currentListId) openShareModal(currentListId); });
 document.getElementById('addBtn').addEventListener('click', () => openItemModal());
 document.getElementById('clearCheckedBtn').addEventListener('click', handleClearChecked);
 document.getElementById('deleteCheckedBtn').addEventListener('click', handleDeleteChecked);
 document.getElementById('restoreBtn').addEventListener('click', handleRestoreCleared);
+
+// Item list: one delegated listener for everything rendered inside it.
+itemListEl.addEventListener('change', e => {
+  const cb = e.target.closest('.item-check input');
+  if (cb) toggleComplete(cb.dataset.id, cb.dataset.complete === 'true');
+});
+itemListEl.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const id = Number(el.dataset.id);
+  switch (el.dataset.act) {
+    case 'toggle':
+      if (collapsedIds.has(id)) collapsedIds.delete(id); else collapsedIds.add(id);
+      saveCollapsed();
+      render();
+      break;
+    case 'edit':    openItemModal(id); break;
+    case 'add-sub': openItemModal(null, id); break;
+    case 'menu':
+      e.stopPropagation();
+      if (menuItemId === id) closeItemMenu(); else openItemMenu(id, el);
+      break;
+    case 'open-file': {
+      const att = findAttachment(Number(el.dataset.att));
+      if (att) openAttachment(att);
+      break;
+    }
+  }
+});
+
+menuEl.addEventListener('click', e => {
+  const btn = e.target.closest('[data-menu-act]');
+  if (btn && !btn.disabled) handleMenuAction(btn.dataset.menuAct);
+});
+document.addEventListener('click', e => {
+  if (menuItemId !== null && !menuEl.contains(e.target)) closeItemMenu();
+});
+itemListEl.addEventListener('scroll', closeItemMenu, { passive: true });
+window.addEventListener('resize', closeItemMenu);
 
 document.getElementById('itemModalClose').addEventListener('click', closeItemModal);
 document.getElementById('itemModalCancel').addEventListener('click', closeItemModal);
 document.getElementById('itemModalSave').addEventListener('click', submitItemForm);
 document.getElementById('itemForm').addEventListener('submit', e => { e.preventDefault(); submitItemForm(); });
 document.getElementById('itemModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeItemModal(); });
+document.getElementById('f-file-btn').addEventListener('click', () => document.getElementById('f-file-input').click());
+document.getElementById('f-file-input').addEventListener('change', e => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  if (files.length) handleFilesPicked(files);
+});
+document.getElementById('f-files').addEventListener('click', e => {
+  const open = e.target.closest('[data-open-att]');
+  const del = e.target.closest('[data-del-att]');
+  const delPending = e.target.closest('[data-del-pending]');
+  if (open) {
+    const att = findAttachment(Number(open.dataset.openAtt));
+    if (att) openAttachment(att);
+  } else if (del) {
+    removeAttachment(Number(del.dataset.delAtt));
+  } else if (delPending) {
+    pendingFiles.splice(Number(delPending.dataset.delPending), 1);
+    renderModalFiles();
+  }
+});
 
 document.getElementById('listModalClose').addEventListener('click', closeListModal);
 document.getElementById('listModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeListModal(); });
 document.getElementById('addListBtn').addEventListener('click', handleAddList);
 document.getElementById('newListName').addEventListener('keydown', e => { if (e.key === 'Enter') handleAddList(); });
+document.getElementById('listItems').addEventListener('click', e => {
+  const btn = e.target.closest('[data-list-act]');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  const name = btn.dataset.name;
+  switch (btn.dataset.listAct) {
+    case 'share':  closeListModal(); openShareModal(id); break;
+    case 'copy':   handleDuplicateList(id, name); break;
+    case 'rename': handleRenameList(id, name); break;
+    case 'delete': handleDeleteList(id, name); break;
+    case 'leave':  handleLeaveList(id, name); break;
+  }
+});
+
+document.getElementById('shareModalClose').addEventListener('click', closeShareModal);
+document.getElementById('shareModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeShareModal(); });
+document.getElementById('shareAddBtn').addEventListener('click', handleAddShare);
+document.getElementById('shareUsername').addEventListener('keydown', e => { if (e.key === 'Enter') handleAddShare(); });
+document.getElementById('shareMembers').addEventListener('click', e => {
+  const btn = e.target.closest('[data-unshare]');
+  if (btn) handleUnshare(Number(btn.dataset.unshare), btn.dataset.name);
+});
+document.getElementById('shareLeaveBtn').addEventListener('click', async () => {
+  const list = lists.find(l => l.id === shareListId);
+  if (list && await handleLeaveList(list.id, list.name)) closeShareModal();
+});
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeItemModal(); closeListModal(); }
+  if (e.key === 'Escape') {
+    if (menuItemId !== null) { closeItemMenu(); return; }
+    closeItemModal(); closeListModal(); closeShareModal();
+  }
+});
+
+// Coming back to the app picks up changes made by people the list is shared with.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && auth && !anyModalOpen()) refreshQuietly();
 });
 
 // ── INIT ──────────────────────────────────────────────────────────────────────

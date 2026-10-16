@@ -62,3 +62,46 @@ ON DUPLICATE KEY UPDATE user_id = app_access.user_id;
 -- TABLE above). Run this ONCE, BEFORE uploading the new api.php.
 
 ALTER TABLE checklist_items ADD COLUMN notes TEXT NULL AFTER who;
+
+-- ---------- 2026-10-16 (2): contact/phone, ordering, files, sharing ----------
+-- Run this whole block ONCE, BEFORE uploading the matching api.php.
+-- (A fresh install: run the CREATE TABLEs at the top first, then this block.)
+
+-- Contact name + phone (tap to call / text), and sort_order for move up/down.
+-- sort_order only orders an item among its siblings; seeding it from id keeps
+-- every existing list in the order it shows today.
+ALTER TABLE checklist_items
+  ADD COLUMN sort_order   INT NOT NULL DEFAULT 0 AFTER depth,
+  ADD COLUMN contact_name VARCHAR(150) NULL AFTER who,
+  ADD COLUMN phone_number VARCHAR(40)  NULL AFTER contact_name;
+
+UPDATE checklist_items SET sort_order = id * 10;
+
+-- Photos/files on an item. The files themselves live in api/uploads/ (served
+-- only through api.php to people who can see the list); this is the index.
+-- user_id = who uploaded it.
+CREATE TABLE checklist_attachments (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  item_id      INT NOT NULL,
+  user_id      INT NOT NULL,
+  file_name    VARCHAR(255) NOT NULL,
+  file_type    VARCHAR(100) NOT NULL,
+  file_size    INT NOT NULL DEFAULT 0,
+  stored_name  VARCHAR(64) NOT NULL,
+  created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY (item_id),
+  FOREIGN KEY (item_id) REFERENCES checklist_items(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Live sharing: each row lets one more login see and edit a list. The owner
+-- stays checklist_lists.user_id; only the owner can rename/delete/share it.
+CREATE TABLE checklist_list_shares (
+  list_id     INT NOT NULL,
+  user_id     INT NOT NULL,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (list_id, user_id),
+  KEY (user_id),
+  FOREIGN KEY (list_id) REFERENCES checklist_lists(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

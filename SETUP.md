@@ -60,7 +60,17 @@ const API_URL = 'https://seniorfamily.org/checklist-api/api.php';
   indent button nests an item under the item directly above it at the same
   level; outdent promotes it back up one level.
 - Deleting an item deletes its children/grandchildren with it (cascades in
-  the database).
+  the database), along with any photos/files on them.
+- Photos/files are stored in `api/uploads/` on the server (created on first
+  upload, locked by its own `.htaccess`) and only served through `api.php` to
+  people who can see the list. Up to 10 MB each — but the host's PHP
+  `upload_max_filesize` / `post_max_size` must also allow that.
+- Sharing: the list's owner shares it by MyDataWorld username (the other
+  person needs a Master Checklist grant in My Apps Hub). Everyone on a list
+  can add, edit, check off, move and attach files; only the owner can rename,
+  delete or re-share it. A member can leave a list from the Lists screen.
+- "Add to calendar" uses the shared Apple/Google choice from My Apps Hub
+  (`mdw-prefs.js`, a copy of `my-apps-hub/shared/mdw-prefs.js`).
 - "Clear checked" hides checked items without deleting them; "Restore"
   brings back everything currently hidden for that list — use this pair for
   repeating lists you want to reuse. "Delete checked" is the permanent
