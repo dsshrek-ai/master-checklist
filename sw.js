@@ -1,4 +1,4 @@
-const CACHE = 'master-checklist-v6';
+const CACHE = 'master-checklist-v7';
 // Relative, so they resolve under /master-checklist/ on GitHub Pages.
 const ASSETS = ['./', './index.html', './manifest.json', './mdw-prefs.js'];
 
