@@ -203,6 +203,16 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
 .list-add-row input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--gray-3);
   border-radius: var(--radius); font-size: 15px; outline: none; }
 .list-add-row input:focus { border-color: var(--blue); }
+#toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); z-index: 300; max-width: 92vw;
+  background: var(--gray-9); color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 14px;
+  box-shadow: var(--shadow-md); opacity: 0; pointer-events: none; transition: opacity .2s; }
+#toast.show { opacity: 1; }
+.dest-list { max-height: 50vh; overflow-y: auto; border: 1px solid var(--gray-3); border-radius: var(--radius); margin-top: 8px; }
+.dest-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--gray-3); cursor: pointer; font-size: 15px; }
+.dest-row:first-child { border-top: 0; }
+.dest-row input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--blue); }
+.dest-row.disabled { color: var(--gray-5); cursor: default; }
+.dest-row .dest-what { overflow-wrap: anywhere; }
 .check-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 15px; cursor: pointer; }
 .check-row input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--blue); }
 .check-row small { display: block; color: var(--gray-5); font-size: 12px; }
@@ -388,6 +398,30 @@ main { flex: 1; overflow-y: auto; padding: 12px 16px 80px; }
   </div>
 </div>
 
+<!-- Move / copy a task modal -->
+<div class="modal-backdrop" id="moveModal" role="dialog" aria-modal="true" aria-labelledby="moveModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="moveModalTitle">Move task</h2>
+      <button class="btn-icon" id="moveModalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p class="hint" id="moveHint"></p>
+    <div id="moveError" class="error-msg" style="display:none"></div>
+    <div class="field">
+      <label for="moveList">List</label>
+      <select id="moveList"></select>
+    </div>
+    <label class="hint" style="display:block;margin:0">Put it…</label>
+    <div class="dest-list" id="moveDest"><p class="status-msg">Loading…</p></div>
+    <div class="modal-footer">
+      <button class="btn" id="moveCancel">Cancel</button>
+      <button class="btn btn-primary" id="moveGo">Move</button>
+    </div>
+  </div>
+</div>
+
 <!-- Print options modal -->
 <div class="modal-backdrop" id="printModal" role="dialog" aria-modal="true" aria-labelledby="printModalTitle">
   <div class="modal">
@@ -447,6 +481,8 @@ const menuEl = document.getElementById('itemMenu');
 // Default 16px; CSS overrides where a smaller/larger icon is wanted.
 const svg = body => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">${body}</svg>`;
 const ICON = {
+  restore: svg('<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>'),
+  moveTo:  svg('<polyline points="5 9 2 12 5 15"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><polyline points="9 5 12 2 15 5"/><polyline points="9 19 12 22 15 19"/><line x1="12" y1="2" x2="12" y2="22"/>'),
   pin:     svg('<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>'),
   cal:     svg('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'),
   user:    svg('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
@@ -1108,6 +1144,9 @@ function openItemMenu(id, anchor) {
     { act: 'down',     icon: ICON.down,    label: 'Move down', disabled: pos.index === pos.count - 1 },
     { act: 'indent',   icon: ICON.indent,  label: 'Indent under item above', disabled: pos.index === 0 || item.depth >= 2 },
     { act: 'outdent',  icon: ICON.outdent, label: 'Outdent',   disabled: item.parentId === null },
+    item.clearedBelow ? { act: 'restore', icon: ICON.restore, label: `Restore ${item.clearedBelow} cleared below` } : null,
+    { act: 'moveTo',   icon: ICON.moveTo,  label: 'Move to…' },
+    { act: 'copyTo',   icon: ICON.copy,    label: 'Copy to…' },
     item.whenDate ? { act: 'calendar', icon: ICON.calAdd, label: 'Add to calendar' } : null,
     { act: 'delete',   icon: ICON.trash,   label: 'Delete',    danger: true },
   ].filter(Boolean);
@@ -1146,9 +1185,134 @@ function handleMenuAction(act) {
     case 'down':     itemAction('moveItem', id, { direction: 'down' }, "Couldn't move"); break;
     case 'indent':   itemAction('indentItem', id, {}, "Couldn't indent"); break;
     case 'outdent':  itemAction('outdentItem', id, {}, "Couldn't outdent"); break;
+    case 'restore':  restoreBelow(item); break;
+    case 'moveTo':   openMoveModal(item, 'move'); break;
+    case 'copyTo':   openMoveModal(item, 'copy'); break;
     case 'calendar': addItemToCalendar(item); break;
     case 'delete':   removeItem(id); break;
   }
+}
+
+// ── RESTORE / MOVE / COPY A TASK WITH EVERYTHING BELOW IT ─────────────────────
+async function restoreBelow(item) {
+  try {
+    const res = await api('restoreSubtree', { method: 'POST', body: { id: item.id } });
+    await loadItems(true);
+    showToast(`Restored ${res.restored} item${res.restored === 1 ? '' : 's'} under "${item.what}".`);
+  } catch (e) {
+    handleApiError(e, "Couldn't restore");
+  }
+}
+
+// A short message at the bottom of the screen that fades by itself.
+let toastTimer = null;
+function showToast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+let moveState = null; // { item, mode, listId, items, dest }
+
+function subtreeIds(rootId, items) {
+  const out = new Set([rootId]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    items.forEach(i => { if (i.parentId && out.has(i.parentId) && !out.has(i.id)) { out.add(i.id); grew = true; } });
+  }
+  return out;
+}
+
+async function openMoveModal(item, mode) {
+  moveState = { item, mode, listId: currentListId, items: [], dest: null };
+  const verb = mode === 'move' ? 'Move' : 'Copy';
+  document.getElementById('moveModalTitle').textContent = `${verb} "${item.what}"`;
+  document.getElementById('moveHint').textContent = mode === 'move'
+    ? 'Moves this task with all its sub-items, notes and files.'
+    : 'Copies this task with all its sub-items, notes and files. The copy starts unchecked.';
+  document.getElementById('moveGo').textContent = verb;
+  document.getElementById('moveError').style.display = 'none';
+  const sel = document.getElementById('moveList');
+  sel.innerHTML = lists.map(l => `<option value="${l.id}" ${l.id === currentListId ? 'selected' : ''}>${esc(listLabel(l))}</option>`).join('');
+  document.getElementById('moveModal').classList.add('open');
+  await loadMoveDestinations();
+}
+
+async function loadMoveDestinations() {
+  const box = document.getElementById('moveDest');
+  box.innerHTML = '<p class="status-msg">Loading…</p>';
+  moveState.dest = null;
+  try {
+    const data = moveState.listId === currentListId ? { items: allItems } : await api('listItems', { query: { listId: moveState.listId } });
+    moveState.items = data.items;
+  } catch (e) {
+    box.innerHTML = `<p class="status-msg">${esc(e.message)}</p>`;
+    return;
+  }
+  // Tree order, so each task sits under its parent.
+  const items = moveState.items;
+  const idSet = new Set(items.map(i => i.id));
+  const kids = new Map();
+  items.forEach(i => {
+    const k = i.parentId && idSet.has(i.parentId) ? i.parentId : 0;
+    if (!kids.has(k)) kids.set(k, []);
+    kids.get(k).push(i);
+  });
+  kids.forEach(a => a.sort((x, y) => (x.sortOrder - y.sortOrder) || (x.id - y.id)));
+  const ordered = [];
+  const walk = (k, d) => (kids.get(k) || []).forEach(i => { ordered.push({ i, d }); walk(i.id, d + 1); });
+  walk(0, 0);
+  // A task can't be moved into itself or its own sub-items.
+  const blocked = moveState.mode === 'move' && moveState.listId === currentListId ? subtreeIds(moveState.item.id, allItems) : new Set();
+  const row = (value, label, indent, disabled) => `<label class="dest-row${disabled ? ' disabled' : ''}" style="padding-left:${12 + indent * 22}px">
+      <input type="radio" name="moveDest" value="${value}" ${disabled ? 'disabled' : ''}><span class="dest-what">${label}</span></label>`;
+  box.innerHTML = row(0, '<strong>At the top of the list</strong>', 0, false)
+    + ordered.map(({ i, d }) => row(i.id, `Under ${esc(i.what)}`, d, blocked.has(i.id))).join('');
+  box.querySelectorAll('input[name=moveDest]').forEach(r => r.addEventListener('change', () => { moveState.dest = Number(r.value); }));
+}
+
+async function submitMove() {
+  if (moveState.dest === null) {
+    showMoveError('Choose where to put it.');
+    return;
+  }
+  const btn = document.getElementById('moveGo');
+  btn.disabled = true;
+  try {
+    const action = moveState.mode === 'move' ? 'moveSubtree' : 'copySubtree';
+    const res = await api(action, { method: 'POST', body: { id: moveState.item.id, targetListId: moveState.listId, targetParentId: moveState.dest } });
+    const n = moveState.mode === 'move' ? res.moved : res.copied;
+    const where = moveState.listId === currentListId ? '' : ` to "${(lists.find(l => l.id === moveState.listId) || {}).name || 'the other list'}"`;
+    closeMoveModal();
+    await loadLists();
+    await loadItems(true);
+    showToast(`${moveState.mode === 'move' ? 'Moved' : 'Copied'} ${n} item${n === 1 ? '' : 's'}${where}.`);
+  } catch (e) {
+    // e.g. too many levels for the destination: nothing was changed.
+    showMoveError(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function showMoveError(msg) {
+  const el = document.getElementById('moveError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function closeMoveModal() {
+  document.getElementById('moveModal').classList.remove('open');
 }
 
 // ── ITEM MODAL ────────────────────────────────────────────────────────────────
@@ -1436,6 +1600,7 @@ function closeAllOverlays() {
   closeListModal();
   closeShareModal();
   closePrintModal();
+  closeMoveModal();
 }
 
 function anyModalOpen() {
@@ -1537,6 +1702,11 @@ document.getElementById('listPicker').addEventListener('change', e => {
 });
 document.getElementById('manageListsBtn').addEventListener('click', openListModal);
 document.getElementById('shareBtn').addEventListener('click', () => { if (currentListId) openShareModal(currentListId); });
+document.getElementById('moveModalClose').addEventListener('click', closeMoveModal);
+document.getElementById('moveCancel').addEventListener('click', closeMoveModal);
+document.getElementById('moveModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeMoveModal(); });
+document.getElementById('moveGo').addEventListener('click', submitMove);
+document.getElementById('moveList').addEventListener('change', e => { moveState.listId = Number(e.target.value); document.getElementById('moveError').style.display = 'none'; loadMoveDestinations(); });
 document.getElementById('printBtn').addEventListener('click', () => { if (currentListId) openPrintModal(); });
 document.getElementById('printModalClose').addEventListener('click', closePrintModal);
 document.getElementById('printModalCancel').addEventListener('click', closePrintModal);
@@ -1646,7 +1816,7 @@ document.getElementById('shareLeaveBtn').addEventListener('click', async () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (menuItemId !== null) { closeItemMenu(); return; }
-    closeItemModal(); closeListModal(); closeShareModal(); closePrintModal();
+    closeItemModal(); closeListModal(); closeShareModal(); closePrintModal(); closeMoveModal();
   }
 });
 

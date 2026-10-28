@@ -287,6 +287,51 @@ function subtreeMaxRelDepth(array $childrenMap, int $rootId): int {
   return $max;
 }
 
+// The deepest level allowed: 0 = task, 1 = sub-item, 2 = sub-sub-item.
+const MAX_DEPTH = 2;
+const LEVEL_NAMES = ['task', 'sub-item', 'sub-sub-item'];
+
+function itemLabel(array $row): string {
+  $what = (string)$row['what'];
+  return '"' . (mb_strlen($what) > 40 ? mb_substr($what, 0, 40) . '…' : $what) . '"';
+}
+
+// Where a moved/copied task would land: [list id, parent id or null, depth of
+// the task itself there]. Checks access to the destination, that the parent
+// is in that list, and -- for a move -- that it isn't the task or one of its
+// own sub-items.
+function resolveDestination(array $user, array $item, array $body, bool $isMove): array {
+  $listId = (int)($body['targetListId'] ?? 0);
+  $parentId = (int)($body['targetParentId'] ?? 0);
+  if ($listId <= 0) {
+    fail('Choose where to put it');
+  }
+  requireListAccess($user, $listId);
+  if ($parentId <= 0) {
+    return [$listId, null, 0];
+  }
+  $parent = requireItemAccess($user, $parentId);
+  if ((int)$parent['list_id'] !== $listId) {
+    fail('That task is in a different list');
+  }
+  if ($isMove) {
+    $children = buildChildrenMap(fetchTreeRows((int)$item['list_id']));
+    if ($parentId === (int)$item['id'] || in_array($parentId, collectDescendants($children, (int)$item['id']), true)) {
+      fail('A task can\'t be moved into itself or one of its own sub-items');
+    }
+  }
+  return [$listId, $parentId, (int)$parent['depth'] + 1];
+}
+
+// The message when a task with $relDepth levels below it won't fit at $depth.
+function tooDeepMessage(string $verb, array $item, int $relDepth, int $depth): string {
+  $levels = $relDepth + 1;
+  $where = $depth === 0 ? 'there' : 'under that ' . LEVEL_NAMES[$depth - 1];
+  return "Can't $verb " . itemLabel($item) . ": it has $levels level" . ($levels === 1 ? '' : 's')
+    . ' (the task' . ($relDepth > 0 ? ' and its sub-items' : '') . "), and $where it would go deeper than the 3 levels allowed"
+    . ' (task → sub-item → sub-sub-item). Nothing was changed.';
+}
+
 // Rewrites sort_order as 10, 20, 30… in the given order (one sibling group).
 function renumber(array $orderedIds): void {
   $stmt = db()->prepare('UPDATE checklist_items SET sort_order = ? WHERE id = ?');
@@ -660,6 +705,15 @@ switch ($action) {
       }
     }
 
+    // For each visible task, how many cleared items are somewhere below it --
+    // that's what its "Restore" menu entry brings back.
+    $byId = fetchTreeRows($listId);
+    $children = buildChildrenMap($byId);
+    foreach ($items as $id => &$shaped) {
+      $shaped['clearedBelow'] = count(array_filter(collectDescendants($children, $id), fn($d) => $byId[$d]['cleared']));
+    }
+    unset($shaped);
+
     respond(['items' => array_values($items), 'clearedCount' => $clearedCount]);
   }
 
@@ -949,6 +1003,127 @@ switch ($action) {
     deleteStoredFiles($files);
 
     respond(['success' => true, 'deleted' => $count]);
+  }
+
+  // Brings back the task (if it was cleared) and every cleared item below it,
+  // at any depth.
+  case 'restoreSubtree': {
+    $user = requireMember();
+    $body = jsonBody();
+    $item = requireItemAccess($user, (int)($body['id'] ?? 0));
+    $children = buildChildrenMap(fetchTreeRows((int)$item['list_id']));
+    $ids = array_merge([(int)$item['id']], collectDescendants($children, (int)$item['id']));
+    $count = exec1('UPDATE checklist_items SET cleared_at = NULL WHERE cleared_at IS NOT NULL AND id IN (' . inPlaceholders($ids) . ')',
+                   str_repeat('i', count($ids)), $ids);
+    respond(['success' => true, 'restored' => $count]);
+  }
+
+  // { id, targetListId, targetParentId (0 = top level of that list) } -- moves
+  // the task with everything below it (cleared items and files included).
+  case 'moveSubtree': {
+    $user = requireMember();
+    $body = jsonBody();
+    $item = requireItemAccess($user, (int)($body['id'] ?? 0));
+    [$listId, $parentId, $depth] = resolveDestination($user, $item, $body, true);
+
+    $byId = fetchTreeRows((int)$item['list_id']);
+    $children = buildChildrenMap($byId);
+    $relDepth = subtreeMaxRelDepth($children, (int)$item['id']);
+    if ($depth + $relDepth > MAX_DEPTH) {
+      fail(tooDeepMessage('move', $item, $relDepth, $depth));
+    }
+    $descendants = collectDescendants($children, (int)$item['id']);
+    $shift = $depth - (int)$item['depth'];
+
+    db()->begin_transaction();
+    exec1('UPDATE checklist_items SET list_id = ?, parent_id = ?, depth = ?, sort_order = ? WHERE id = ?',
+          'iiiii', [$listId, $parentId, $depth, nextSortOrder($listId), (int)$item['id']]);
+    if ($descendants) {
+      exec1('UPDATE checklist_items SET list_id = ?, depth = depth + ? WHERE id IN (' . inPlaceholders($descendants) . ')',
+            'ii' . str_repeat('i', count($descendants)), array_merge([$listId, $shift], $descendants));
+    }
+    db()->commit();
+    respond(['success' => true, 'moved' => 1 + count($descendants)]);
+  }
+
+  // { id, targetListId, targetParentId } -- copies the task and everything
+  // visible below it, unchecked, with files. Cleared items aren't copied (a
+  // sub-item under a cleared one moves up to the nearest copied task).
+  case 'copySubtree': {
+    $user = requireMember();
+    $body = jsonBody();
+    $item = requireItemAccess($user, (int)($body['id'] ?? 0));
+    [$listId, $parentId, $depth] = resolveDestination($user, $item, $body, false);
+    $userId = (int)$user['id'];
+
+    $byId = fetchTreeRows((int)$item['list_id']);
+    $children = buildChildrenMap($byId);
+    // Walk the sub-tree parents-first, keeping only visible items, and work
+    // out each copy's parent (nearest copied ancestor) and relative depth.
+    $plan = [];   // [old id, old parent id or null, relative depth]
+    $relOf = [];
+    $walk = function (int $id, ?int $copiedParent, int $rel) use (&$walk, &$plan, &$relOf, $byId, $children) {
+      $copied = !$byId[$id]['cleared'];
+      if ($copied) {
+        $plan[] = [$id, $copiedParent, $rel];
+        $relOf[$id] = $rel;
+      }
+      foreach ($children[$id] ?? [] as $childId) {
+        $walk($childId, $copied ? $id : $copiedParent, $copied ? $rel + 1 : $rel);
+      }
+    };
+    $walk((int)$item['id'], null, 0);
+    if (!$plan) {
+      fail('There\'s nothing to copy -- that task has been cleared');
+    }
+    $relDepth = max($relOf);
+    if ($depth + $relDepth > MAX_DEPTH) {
+      fail(tooDeepMessage('copy', $item, $relDepth, $depth));
+    }
+
+    $ids = array_column($plan, 0);
+    $rows = [];
+    foreach (q('SELECT * FROM checklist_items WHERE id IN (' . inPlaceholders($ids) . ')', str_repeat('i', count($ids)), $ids) as $r) {
+      $rows[(int)$r['id']] = $r;
+    }
+    $attachments = q('SELECT * FROM checklist_attachments WHERE item_id IN (' . inPlaceholders($ids) . ') ORDER BY id',
+                     str_repeat('i', count($ids)), $ids);
+
+    $copiedFiles = [];
+    db()->begin_transaction();
+    try {
+      $newIds = [];
+      $rootSort = nextSortOrder($listId);
+      foreach ($plan as [$oldId, $oldParent, $rel]) {
+        $it = $rows[$oldId];
+        $newParent = $oldParent === null ? $parentId : $newIds[$oldParent];
+        $sort = $oldParent === null ? $rootSort : (int)$it['sort_order'];
+        $newIds[$oldId] = exec1(
+          'INSERT INTO checklist_items (list_id, user_id, parent_id, depth, sort_order, what, where_text, when_date, when_time, who, contact_name, phone_number, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'iiiiissssssss',
+          [$listId, $userId, $newParent, $depth + $rel, $sort, $it['what'], $it['where_text'], $it['when_date'], $it['when_time'],
+           $it['who'], $it['contact_name'], $it['phone_number'], $it['notes']]
+        );
+      }
+      $dir = uploadDir();
+      foreach ($attachments as $a) {
+        $src = $dir . '/' . basename($a['stored_name']);
+        $stored = newStoredName();
+        if (!is_file($src) || !copy($src, $dir . '/' . $stored)) {
+          continue;
+        }
+        $copiedFiles[] = $stored;
+        exec1('INSERT INTO checklist_attachments (item_id, user_id, file_name, file_type, file_size, stored_name) VALUES (?, ?, ?, ?, ?, ?)',
+              'iissis', [$newIds[(int)$a['item_id']], $userId, $a['file_name'], $a['file_type'], (int)$a['file_size'], $stored]);
+      }
+      db()->commit();
+    } catch (Throwable $e) {
+      db()->rollback();
+      deleteStoredFiles($copiedFiles);
+      fail('Couldn\'t copy the task', 500);
+    }
+    respond(['success' => true, 'copied' => count($newIds)]);
   }
 
   case 'restoreCleared': {
